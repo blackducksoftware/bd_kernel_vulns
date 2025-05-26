@@ -1,37 +1,46 @@
-from ComponentListClass import ComponentList
-from ComponentClass import Component
+# import config
+# from ComponentListClass import ComponentList
+# from ComponentClass import Component
 from VulnListClass import VulnList
 import global_values
-import logging
+# import logging
 from blackduck import Client
 import sys
-from tabulate import tabulate
+# from tabulate import tabulate
+# import aiohttp
+import asyncio
+import platform
+# import re
+
 
 class BOM:
     def __init__(self, proj, ver):
         self.bdprojname = proj
         self.bdvername = ver
-        self.complist = ComponentList()
+        # self.complist = ComponentList()
         self.vulnlist = VulnList()
+        self.bd = None
 
-        logging.info(f"Working on project '{proj}' version '{ver}'")
+        global_values.logger.info(f"Working on project '{proj}' version '{ver}'")
 
         self.bdver_dict = self.get_project(proj, ver)
+        if not self.bd:
+            return
 
         res = self.bd.list_resources(self.bdver_dict)
         self.projver = res['href']
-        thishref = f"{self.projver}/components"
-
-        bom_arr = self.get_paginated_data(thishref, "application/vnd.blackducksoftware.bill-of-materials-6+json")
-
-        for comp in bom_arr:
-            if 'componentVersion' not in comp:
-                continue
-            # compver = comp['componentVersion']
-
-            compclass = Component(comp['componentName'], comp['componentVersionName'], comp)
-            self.complist.add(compclass)
-
+        # thishref = f"{self.projver}/components"
+        #
+        # bom_arr = self.get_paginated_data(thishref, "application/vnd.blackducksoftware.bill-of-materials-6+json")
+        #
+        # for comp in bom_arr:
+        #     if 'componentVersion' not in comp:
+        #         continue
+        #     # compver = comp['componentVersion']
+        #
+        #     compclass = Component(comp['componentName'], comp['componentVersionName'], comp)
+        #     self.complist.add(compclass)
+        #
         return
 
     def get_paginated_data(self, url, accept_hdr):
@@ -59,7 +68,6 @@ class BOM:
 
         return ret_arr
 
-
     def get_project(self, proj, ver):
         self.bd = Client(
             token=global_values.bd_api,
@@ -84,23 +92,37 @@ class BOM:
                         break
                 break
         else:
-            logging.error(f"Version '{ver}' does not exist in project '{proj}'")
+            global_values.logger.error(f"Version '{ver}' does not exist in project '{proj}'")
             sys.exit(2)
 
         if ver_dict is None:
-            logging.warning(f"Project '{proj}' does not exist")
+            global_values.logger.warning(f"Project '{proj}' does not exist")
             sys.exit(2)
 
         return ver_dict
 
-
     def get_vulns(self):
         vuln_url = f"{self.projver}/vulnerable-bom-components"
-        vuln_arr = self.get_paginated_data(vuln_url, "application/vnd.blackducksoftware.bill-of-materials-6+json")
-        self.vulnlist.add(vuln_arr)
+        vuln_arr = self.get_paginated_data(vuln_url, "application/vnd.blackducksoftware.bill-of-materials-8+json")
+        self.vulnlist.add_comp_data(vuln_arr)
 
+    def process_data_async(self):
+        if platform.system() == "Windows":
+            asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
-    def print_vulns(self):
-        table, header = self.vulnlist.print(self.bd)
-        print(tabulate(table, headers=header, tablefmt="tsv"))
+        self.vulnlist.add_vuln_data(asyncio.run(self.vulnlist.async_get_vuln_data(self.bd)))
 
+    def process_kernel_vulns(self, kfiles):
+        self.vulnlist.process_kernel_vulns(kfiles)
+
+    # def count_comps(self):
+    #     return len(self.complist)
+
+    def count_vulns(self):
+        return self.vulnlist.count()
+
+    def count_in_kernel_vulns(self):
+        return self.vulnlist.count_in_kernel()
+
+    def count_not_in_kernel_vulns(self):
+        return self.vulnlist.count() - self.vulnlist.count_in_kernel()
