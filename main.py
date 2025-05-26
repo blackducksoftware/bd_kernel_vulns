@@ -24,6 +24,8 @@ def main():
     bom.process_kernel_vulns(kfiles)
 
     global_values.logger.info(f"Identified {bom.count_in_kernel_vulns()} in-scope kernel vulns ({bom.count_not_in_kernel_vulns()} not in-scope)")
+
+    bom.ignore_vulns_async()
     global_values.logger.info("Done")
 
 

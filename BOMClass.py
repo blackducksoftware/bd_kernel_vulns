@@ -112,6 +112,13 @@ class BOM:
 
         self.vulnlist.add_vuln_data(asyncio.run(self.vulnlist.async_get_vuln_data(self.bd)))
 
+    def ignore_vulns_async(self):
+        if platform.system() == "Windows":
+            asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+
+        data = asyncio.run(self.vulnlist.async_ignore_vulns(self.bd))
+        print(data)
+
     def process_kernel_vulns(self, kfiles):
         self.vulnlist.process_kernel_vulns(kfiles)
 

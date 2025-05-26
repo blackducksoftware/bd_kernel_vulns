@@ -91,3 +91,20 @@ class VulnList:
             await asyncio.sleep(0.250)
 
         return vuln_data
+
+    async def async_ignore_vulns(self, bd):
+        token = bd.session.auth.bearer_token
+
+        async with aiohttp.ClientSession(trust_env=True) as session:
+            vuln_tasks = []
+            for vuln in self.vulns:
+                if vuln.is_ignored() or vuln.in_kernel:
+                    continue
+
+                vuln_task = asyncio.ensure_future(vuln.async_ignore_vuln(bd, session, token))
+                vuln_tasks.append(vuln_task)
+
+            vuln_data = dict(await asyncio.gather(*vuln_tasks))
+            await asyncio.sleep(0.250)
+
+        return vuln_data

@@ -1,6 +1,7 @@
 import global_values
 # import config
 import re
+import datetime
 
 
 class Vuln:
@@ -77,20 +78,26 @@ class Vuln:
         res = bd.get_json(url, headers=headers)
         return res
 
+    def get_component(self):
+        return self.comp_vuln_data['componentName']
+
+    def vuln_url(self, bd):
+        return f"{bd.base_url}/api/vulnerabilities/{self.get_id()}"
+
+    def url(self, bd):
+        try:
+            return self.comp_vuln_data['_meta']['href']
+        except KeyError:
+            return ''
+
+    def get_associated_vuln_url(self, bd):
+        return f"{bd.base_url}/api/vulnerabilities/{self.get_linked_vuln()}"
+
     def is_ignored(self):
         if self.comp_vuln_data['vulnerability']['remediationStatus'] == 'IGNORED':
             return True
         else:
             return False
-
-    def get_component(self):
-        return self.comp_vuln_data['componentName']
-
-    def get_url(self, bd):
-        return f"{bd.base_url}/api/vulnerabilities/{self.get_id()}"
-
-    def get_associated_vuln_url(self, bd):
-        return f"{bd.base_url}/api/vulnerabilities/{self.get_linked_vuln()}"
 
     def add_data(self, data):
         try:
@@ -171,7 +178,7 @@ class Vuln:
             'Authorization': f'Bearer {token}',
         }
         # resp = globals.bd.get_json(thishref, headers=headers)
-        async with session.get(self.get_url(bd), headers=headers, ssl=ssl) as resp:
+        async with session.get(self.vuln_url(bd), headers=headers, ssl=ssl) as resp:
             result_data = await resp.json()
         return self.get_id(), result_data
 
@@ -189,3 +196,27 @@ class Vuln:
         async with session.get(self.get_associated_vuln_url(bd), headers=headers, ssl=ssl) as resp:
             result_data = await resp.json()
         return self.get_id(), result_data
+
+    async def async_ignore_vuln(self, bd, session, token):
+        if global_values.bd_trustcert:
+            ssl = False
+        else:
+            ssl = None
+
+        headers = {
+            # 'accept': "application/vnd.blackducksoftware.bill-of-materials-6+json",
+            'Authorization': f'Bearer {token}',
+        }
+        # resp = globals.bd.get_json(thishref, headers=headers)
+        x = datetime.datetime.now()
+        mydate = x.strftime("%x %X")
+        payload = {
+            "remediationJustification": "NO_CODE",
+            "comment": f"Remediated by bd-vulns utility {mydate} - vuln refers to source file not compiled in kernel",
+            "remediationStatus": "IGNORED"
+        }
+        async with session.put(self.url(bd), headers=headers, json=payload) as response:
+            res = response.status
+
+        print(res)
+        return self.get_id(), res
