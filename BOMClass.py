@@ -1,5 +1,5 @@
 # import config
-# from ComponentListClass import ComponentList
+from ComponentListClass import ComponentList
 # from ComponentClass import Component
 from VulnListClass import VulnList
 import global_values
@@ -15,32 +15,36 @@ import platform
 
 class BOM:
     def __init__(self, proj, ver):
-        self.bdprojname = proj
-        self.bdvername = ver
-        # self.complist = ComponentList()
-        self.vulnlist = VulnList()
-        self.bd = None
+        try:
+            self.bdprojname = proj
+            self.bdvername = ver
+            self.complist = ComponentList()
+            self.vulnlist = VulnList()
+            self.bd = None
 
-        global_values.logger.info(f"Working on project '{proj}' version '{ver}'")
+            global_values.logger.info(f"Working on project '{proj}' version '{ver}'")
 
-        self.bdver_dict = self.get_project(proj, ver)
-        if not self.bd:
-            return
+            self.bdver_dict = self.get_project(proj, ver)
+            if not self.bd:
+                raise ValueError("Unable to create BOM object")
 
-        res = self.bd.list_resources(self.bdver_dict)
-        self.projver = res['href']
-        # thishref = f"{self.projver}/components"
-        #
-        # bom_arr = self.get_paginated_data(thishref, "application/vnd.blackducksoftware.bill-of-materials-6+json")
-        #
-        # for comp in bom_arr:
-        #     if 'componentVersion' not in comp:
-        #         continue
-        #     # compver = comp['componentVersion']
-        #
-        #     compclass = Component(comp['componentName'], comp['componentVersionName'], comp)
-        #     self.complist.add(compclass)
-        #
+            res = self.bd.list_resources(self.bdver_dict)
+            self.projver = res['href']
+            # thishref = f"{self.projver}/components"
+            #
+            # bom_arr = self.get_paginated_data(thishref, "application/vnd.blackducksoftware.bill-of-materials-6+json")
+            #
+            # for comp in bom_arr:
+            #     if 'componentVersion' not in comp:
+            #         continue
+            #     # compver = comp['componentVersion']
+            #
+            #     compclass = Component(comp['componentName'], comp['componentVersionName'], comp)
+            #     self.complist.add(compclass)
+            #
+        except ValueError as v:
+            global_values.logger.error(v)
+            sys.exit(-1)
         return
 
     def get_paginated_data(self, url, accept_hdr):
@@ -117,7 +121,10 @@ class BOM:
             asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
         data = asyncio.run(self.vulnlist.async_ignore_vulns(self.bd))
-        print(data)
+        return len(data)
+
+    def ignore_vulns(self):  # DEBUG
+        self.vulnlist.ignore_vulns(self.bd)
 
     def process_kernel_vulns(self, kfiles):
         self.vulnlist.process_kernel_vulns(kfiles)
@@ -133,3 +140,6 @@ class BOM:
 
     def count_not_in_kernel_vulns(self):
         return self.vulnlist.count() - self.vulnlist.count_in_kernel()
+
+    def check_kernel_comp(self):
+        return self.complist.check_kernel()

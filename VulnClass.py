@@ -2,28 +2,27 @@ import global_values
 # import config
 import re
 import datetime
+# import json
 
 
 class Vuln:
-    def __init__(self, data, id=''):
+    def __init__(self, data, id='', cve_data=None):
 
         self.comp_vuln_data = data
         self.bdsa_data = None
-        self.cve_data = None
+        self.cve_data = cve_data
         self.linked_cve_data = None
         self.id = id
         self.in_kernel = True
         if self.id == '':
-            self.id = self.get_id()
+            # self.id = self.get_id()
+            if 'vulnerability' in self.comp_vuln_data:
+                self.id = self.comp_vuln_data['vulnerability']['vulnerabilityId']
+            else:
+                global_values.logger.error('Unable to determine vuln id')
 
     def get_id(self):
-        try:
-            if 'vulnerability' in self.comp_vuln_data:
-                return self.comp_vuln_data['vulnerability']['vulnerabilityId']
-            else:
-                return self.id
-        except KeyError:
-            return ''
+        return self.id
 
     def status(self):
         try:
@@ -79,7 +78,10 @@ class Vuln:
         return res
 
     def get_component(self):
-        return self.comp_vuln_data['componentName']
+        try:
+            return self.comp_vuln_data['componentName']
+        except KeyError:
+            return ''
 
     def vuln_url(self, bd):
         return f"{bd.base_url}/api/vulnerabilities/{self.get_id()}"
@@ -94,8 +96,13 @@ class Vuln:
         return f"{bd.base_url}/api/vulnerabilities/{self.get_linked_vuln()}"
 
     def is_ignored(self):
-        if self.comp_vuln_data['vulnerability']['remediationStatus'] == 'IGNORED':
+        if self.comp_vuln_data['ignored']:
             return True
+        if 'vulnerability' in self.comp_vuln_data:
+            if self.comp_vuln_data['vulnerability']['remediationStatus'] == 'IGNORED':
+                return True
+            else:
+                return False
         else:
             return False
 
@@ -141,18 +148,18 @@ class Vuln:
             if self.get_vuln_source() == 'NVD':
                 sourcefiles = self.find_sourcefile(self.cve_data['description'])
                 if len(sourcefiles) == 0:
-                    global_values.logger.debug(f"CVE {self.get_id()} - Description: {self.cve_data['description']}")
+                    global_values.logger.debug(f"CVE {self.get_id()} - Description: {self.cve_data['description'].replace('\n',' ')}")
             elif self.get_vuln_source() == 'BDSA':
                 sourcefiles = self.find_sourcefile(self.bdsa_data['description'])
                 if len(sourcefiles) == 0:
                     sourcefiles = self.find_sourcefile(self.bdsa_data['technicalDescription'])
                     if len(sourcefiles) == 0:
-                        global_values.logger.debug(f"BDSA {self.get_id()} - Description: {self.bdsa_data['description']}")
-                        global_values.logger.debug(f"BDSA {self.get_id()} - Technical Description: {self.bdsa_data['technicalDescription']}")
+                        global_values.logger.debug(f"BDSA {self.get_id()} - Description: {self.bdsa_data['description'].replace('\n',' ')}")
+                        global_values.logger.debug(f"BDSA {self.get_id()} - Technical Description: {self.bdsa_data['technicalDescription'].replace('\n',' ')}")
                         if self.linked_cve_data:
                             # No source file found - need to check for linked CVE
                             sourcefiles = self.find_sourcefile(self.linked_cve_data['description'])
-                            global_values.logger.debug(f"Linked CVE Description: {self.linked_cve_data['description']}")
+                            global_values.logger.debug(f"Linked CVE Description: {self.linked_cve_data['description'].replace('\n',' ')}")
 
             return sourcefiles
             # print(f"{self.get_id()}: {sourcefile}")
@@ -166,6 +173,31 @@ class Vuln:
 
     def set_not_in_kernel(self):
         self.in_kernel = False
+
+    def ignore_vuln(self, bd):
+        try:
+            # vuln_name = comp['vulnerabilityWithRemediation']['vulnerabilityName']
+            x = datetime.datetime.now()
+            mydate = x.strftime("%x %X")
+
+            payload = self.comp_vuln_data
+            # payload['remediationJustification'] = "NO_CODE"
+            payload[
+                'comment'] = f"Remediated by bd-vulns utility {mydate} - vuln refers to source file not compiled in kernel"
+            payload['remediationStatus'] = "IGNORED"
+
+            # result = hub.execute_put(comp['_meta']['href'], data=comp)
+            href = self.comp_vuln_data['_meta']['href']
+            # href = '/'.join(href.split('/')[3:])
+            r = bd.session.put(href, json=self.comp_vuln_data)
+            r.raise_for_status()
+            if r.status_code != 202:
+                raise Exception(f"PUT returned {r.status_code}")
+            return True
+
+        except Exception as e:
+            global_values.logger.error("Unable to update vulnerabilities via API\n" + str(e))
+            return False
 
     async def async_get_vuln_data(self, bd, session, token):
         if global_values.bd_trustcert:
@@ -210,13 +242,15 @@ class Vuln:
         # resp = globals.bd.get_json(thishref, headers=headers)
         x = datetime.datetime.now()
         mydate = x.strftime("%x %X")
-        payload = {
-            "remediationJustification": "NO_CODE",
-            "comment": f"Remediated by bd-vulns utility {mydate} - vuln refers to source file not compiled in kernel",
-            "remediationStatus": "IGNORED"
-        }
-        async with session.put(self.url(bd), headers=headers, json=payload) as response:
+
+        payload = self.comp_vuln_data
+        # payload['remediationJustification'] = "NO_CODE"
+        payload['comment'] = f"Remediated by bd-vulns utility {mydate} - vuln refers to source file not compiled in kernel"
+        payload['remediationStatus'] = "IGNORED"
+
+        global_values.logger.debug(f"{self.id} - {self.url(bd)}")
+        async with session.put(self.url(bd), headers=headers, json=payload, ssl=ssl) as response:
             res = response.status
 
-        print(res)
+        # print(res)
         return self.get_id(), res

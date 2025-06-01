@@ -1,7 +1,7 @@
 # from Component import Component
-import global_values
-import logging
-import requests
+# import global_values
+# import logging
+# import requests
 
 class ComponentList:
     components = []
@@ -24,3 +24,10 @@ class ComponentList:
     def get_vulns(self):
         for comp in self.components:
             comp.get_vulns()
+
+    def check_kernel(self):
+        for comp in self.components:
+            if comp.is_kernel():
+                return True
+
+        return False

@@ -17,6 +17,8 @@ parser.add_argument("-v", "--version", help="Black Duck project version to proce
 parser.add_argument("--debug", help="Debug logging mode", action='store_true')
 parser.add_argument("--logfile", help="Logging output file", default="")
 parser.add_argument("-k", "--kernel_source_file", help="Kernel source files list (REQUIRED)", default="")
+parser.add_argument("--folders", help="Kernel Source file only contains folders to be used to map vulns",
+                    action='store_true')
 
 args = parser.parse_args()
 
@@ -79,6 +81,9 @@ def check_args():
     else:
         global_values.logger.error(f"Kernel source list file required (--kernel_source_list)")
         terminate = True
+
+    if args.folders == 'true':
+        global_values.folders = True
 
     if terminate:
         sys.exit(2)
