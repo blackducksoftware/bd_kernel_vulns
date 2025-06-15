@@ -2,11 +2,11 @@
 
 
 class KernelSource:
-    def __init__(self, kfile, folders=False):
+    def __init__(self, conf):
         self.file_arr = []
-        self.folders = folders
+        self.folders = conf.folders
         try:
-            with open(kfile) as klfile:
+            with open(conf.kernel_source_file) as klfile:
                 lines = klfile.readlines()
         except FileExistsError:
             return

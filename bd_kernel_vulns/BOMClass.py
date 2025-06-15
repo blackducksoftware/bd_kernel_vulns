@@ -1,8 +1,8 @@
 # import config
-from ComponentListClass import ComponentList
+from .ComponentListClass import ComponentList
 # from ComponentClass import Component
-from VulnListClass import VulnList
-import global_values
+from .VulnListClass import VulnList
+# from . import global_values
 # import logging
 from blackduck import Client
 import sys
@@ -14,17 +14,20 @@ import platform
 
 
 class BOM:
-    def __init__(self, proj, ver):
+    def __init__(self, conf):
         try:
-            self.bdprojname = proj
-            self.bdvername = ver
             self.complist = ComponentList()
             self.vulnlist = VulnList()
-            self.bd = None
+            self.bd = Client(
+                token=conf.bd_api,
+                base_url=conf.bd_url,
+                verify=(not conf.bd_trustcert),  # TLS certificate verification
+                timeout=60
+            )
 
-            global_values.logger.info(f"Working on project '{proj}' version '{ver}'")
+            conf.logger.info(f"Working on project '{conf.bd_project}' version '{conf.bd_version}'")
 
-            self.bdver_dict = self.get_project(proj, ver)
+            self.bdver_dict = self.get_project(conf)
             if not self.bd:
                 raise ValueError("Unable to create BOM object")
 
@@ -43,7 +46,7 @@ class BOM:
             #     self.complist.add(compclass)
             #
         except ValueError as v:
-            global_values.logger.error(v)
+            conf.logger.error(v)
             sys.exit(-1)
         return
 
@@ -72,49 +75,42 @@ class BOM:
 
         return ret_arr
 
-    def get_project(self, proj, ver):
-        self.bd = Client(
-            token=global_values.bd_api,
-            base_url=global_values.bd_url,
-            verify=(not global_values.bd_trustcert),  # TLS certificate verification
-            timeout=60
-        )
-
+    def get_project(self, conf):
         params = {
-            'q': "name:" + proj,
+            'q': "name:" + conf.bd_project,
             'sort': 'name',
         }
 
         ver_dict = None
         projects = self.bd.get_resource('projects', params=params)
         for p in projects:
-            if p['name'] == proj:
+            if p['name'] == conf.bd_project:
                 versions = self.bd.get_resource('versions', parent=p, params=params)
                 for v in versions:
-                    if v['versionName'] == ver:
+                    if v['versionName'] == conf.bd_version:
                         ver_dict = v
                         break
                 break
         else:
-            global_values.logger.error(f"Version '{ver}' does not exist in project '{proj}'")
+            conf.logger.error(f"Version '{conf.bd_version}' does not exist in project '{conf.bd_project}'")
             sys.exit(2)
 
         if ver_dict is None:
-            global_values.logger.warning(f"Project '{proj}' does not exist")
+            conf.logger.warning(f"Project '{conf.bd_project}' does not exist")
             sys.exit(2)
 
         return ver_dict
 
-    def get_vulns(self):
+    def get_vulns(self, conf):
         vuln_url = f"{self.projver}/vulnerable-bom-components"
         vuln_arr = self.get_paginated_data(vuln_url, "application/vnd.blackducksoftware.bill-of-materials-8+json")
-        self.vulnlist.add_comp_data(vuln_arr)
+        self.vulnlist.add_comp_data(vuln_arr, conf)
 
-    def process_data_async(self):
+    def process_data_async(self, conf):
         if platform.system() == "Windows":
             asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
-        self.vulnlist.add_vuln_data(asyncio.run(self.vulnlist.async_get_vuln_data(self.bd)))
+        self.vulnlist.add_vuln_data(asyncio.run(self.vulnlist.async_get_vuln_data(self.bd, conf)), conf)
 
     def ignore_vulns_async(self):
         if platform.system() == "Windows":
@@ -123,11 +119,11 @@ class BOM:
         data = asyncio.run(self.vulnlist.async_ignore_vulns(self.bd))
         return len(data)
 
-    def ignore_vulns(self):  # DEBUG
-        self.vulnlist.ignore_vulns(self.bd)
+    def ignore_vulns(self, conf):  # DEBUG
+        self.vulnlist.ignore_vulns(self.bd, conf)
 
-    def process_kernel_vulns(self, kfiles):
-        self.vulnlist.process_kernel_vulns(kfiles)
+    def process_kernel_vulns(self, conf, kfiles):
+        self.vulnlist.process_kernel_vulns(conf, kfiles)
 
     # def count_comps(self):
     #     return len(self.complist)

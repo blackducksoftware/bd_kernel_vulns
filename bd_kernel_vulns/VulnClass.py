@@ -1,4 +1,4 @@
-import global_values
+# from . import global_values
 # import config
 import re
 import datetime
@@ -6,8 +6,7 @@ import datetime
 
 
 class Vuln:
-    def __init__(self, data, id='', cve_data=None):
-
+    def __init__(self, data, conf, id='', cve_data=None):
         self.comp_vuln_data = data
         self.bdsa_data = None
         self.cve_data = cve_data
@@ -19,7 +18,7 @@ class Vuln:
             if 'vulnerability' in self.comp_vuln_data:
                 self.id = self.comp_vuln_data['vulnerability']['vulnerabilityId']
             else:
-                global_values.logger.error('Unable to determine vuln id')
+                conf.logger.error('Unable to determine vuln id')
 
     def get_id(self):
         return self.id
@@ -86,7 +85,7 @@ class Vuln:
     def vuln_url(self, bd):
         return f"{bd.base_url}/api/vulnerabilities/{self.get_id()}"
 
-    def url(self, bd):
+    def url(self):
         try:
             return self.comp_vuln_data['_meta']['href']
         except KeyError:
@@ -142,24 +141,28 @@ class Vuln:
         except KeyError:
             return ''
 
-    def process_kernel_vuln(self):
+    def process_kernel_vuln(self, conf):
         try:
             sourcefiles = []
             if self.get_vuln_source() == 'NVD':
                 sourcefiles = self.find_sourcefile(self.cve_data['description'])
                 if len(sourcefiles) == 0:
-                    global_values.logger.debug(f"CVE {self.get_id()} - Description: {self.cve_data['description'].replace('\n',' ')}")
+                    desc = self.cve_data['description'].replace('\n', ' ')
+                    conf.logger.debug(f"CVE {self.get_id()} - Description: {desc}")
             elif self.get_vuln_source() == 'BDSA':
                 sourcefiles = self.find_sourcefile(self.bdsa_data['description'])
                 if len(sourcefiles) == 0:
                     sourcefiles = self.find_sourcefile(self.bdsa_data['technicalDescription'])
                     if len(sourcefiles) == 0:
-                        global_values.logger.debug(f"BDSA {self.get_id()} - Description: {self.bdsa_data['description'].replace('\n',' ')}")
-                        global_values.logger.debug(f"BDSA {self.get_id()} - Technical Description: {self.bdsa_data['technicalDescription'].replace('\n',' ')}")
+                        bdsa = self.bdsa_data['description'].replace('\n', ' ')
+                        conf.logger.debug(f"BDSA {self.get_id()} - Description: {bdsa}")
+                        tech = self.bdsa_data['technicalDescription'].replace('\n', ' ')
+                        conf.logger.debug(f"BDSA {self.get_id()} - Technical Description: {tech}")
                         if self.linked_cve_data:
                             # No source file found - need to check for linked CVE
                             sourcefiles = self.find_sourcefile(self.linked_cve_data['description'])
-                            global_values.logger.debug(f"Linked CVE Description: {self.linked_cve_data['description'].replace('\n',' ')}")
+                            cve = self.linked_cve_data['description'].replace('\n', ' ')
+                            conf.logger.debug(f"Linked CVE Description: {cve}")
 
             return sourcefiles
             # print(f"{self.get_id()}: {sourcefile}")
@@ -174,7 +177,7 @@ class Vuln:
     def set_not_in_kernel(self):
         self.in_kernel = False
 
-    def ignore_vuln(self, bd):
+    def ignore_vuln(self, bd, logger):
         try:
             # vuln_name = comp['vulnerabilityWithRemediation']['vulnerabilityName']
             x = datetime.datetime.now()
@@ -183,7 +186,8 @@ class Vuln:
             payload = self.comp_vuln_data
             # payload['remediationJustification'] = "NO_CODE"
             payload[
-                'comment'] = f"Remediated by bd-vulns utility {mydate} - vuln refers to source file not compiled in kernel"
+                'comment'] = (f"Remediated by bd-vulns utility {mydate} - "
+                              f"vuln refers to source file not compiled in kernel")
             payload['remediationStatus'] = "IGNORED"
 
             # result = hub.execute_put(comp['_meta']['href'], data=comp)
@@ -196,11 +200,11 @@ class Vuln:
             return True
 
         except Exception as e:
-            global_values.logger.error("Unable to update vulnerabilities via API\n" + str(e))
+            logger.error("Unable to update vulnerabilities via API\n" + str(e))
             return False
 
-    async def async_get_vuln_data(self, bd, session, token):
-        if global_values.bd_trustcert:
+    async def async_get_vuln_data(self, bd, conf, session, token):
+        if conf.bd_trustcert:
             ssl = False
         else:
             ssl = None
@@ -214,8 +218,8 @@ class Vuln:
             result_data = await resp.json()
         return self.get_id(), result_data
 
-    async def async_get_associated_vuln_data(self, bd, session, token):
-        if global_values.bd_trustcert:
+    async def async_get_associated_vuln_data(self, bd, conf, session, token):
+        if conf.bd_trustcert:
             ssl = False
         else:
             ssl = None
@@ -229,8 +233,8 @@ class Vuln:
             result_data = await resp.json()
         return self.get_id(), result_data
 
-    async def async_ignore_vuln(self, bd, session, token):
-        if global_values.bd_trustcert:
+    async def async_ignore_vuln(self, conf, session, token):
+        if conf.bd_trustcert:
             ssl = False
         else:
             ssl = None
@@ -245,11 +249,12 @@ class Vuln:
 
         payload = self.comp_vuln_data
         # payload['remediationJustification'] = "NO_CODE"
-        payload['comment'] = f"Remediated by bd-vulns utility {mydate} - vuln refers to source file not compiled in kernel"
+        payload['comment'] = (f"Remediated by bd-vulns utility {mydate} - "
+                              f"vuln refers to source file not compiled in kernel")
         payload['remediationStatus'] = "IGNORED"
 
-        global_values.logger.debug(f"{self.id} - {self.url(bd)}")
-        async with session.put(self.url(bd), headers=headers, json=payload, ssl=ssl) as response:
+        conf.logger.debug(f"{self.id} - {self.url()}")
+        async with session.put(self.url(), headers=headers, json=payload, ssl=ssl) as response:
             res = response.status
 
         # print(res)

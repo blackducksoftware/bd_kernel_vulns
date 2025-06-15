@@ -3,7 +3,7 @@ import argparse
 import sys
 import logging
 
-import global_values
+# from . import global_values
 
 parser = argparse.ArgumentParser(description='Black Duck vulns', prog='bd_vulns')
 
@@ -20,15 +20,8 @@ parser.add_argument("-k", "--kernel_source_file", help="Kernel source files list
 parser.add_argument("--folders", help="Kernel Source file only contains folders to be used to map vulns",
                     action='store_true')
 
-args = parser.parse_args()
-
-
-def check_args():
+def check_args(args):
     terminate = False
-    # if platform.system() != "Linux":
-    #     print('''Please use this program on a Linux platform or extract data from a Yocto build then
-    #     use the --bblayers_out option to scan on other platforms\nExiting''')
-    #     sys.exit(2)
     if args.debug:
         loglevel = logging.DEBUG
     else:

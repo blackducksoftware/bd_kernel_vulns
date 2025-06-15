@@ -4,9 +4,8 @@
 # import requests
 
 class ComponentList:
-    components = []
     def __init__(self):
-        pass
+        self.components = []
 
     def add(self, comp):
         self.components.append(comp)

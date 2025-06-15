@@ -8,3 +8,4 @@ logger = None
 logfile = ''
 kernel_source_file = ''
 folders = False
+debug = False
