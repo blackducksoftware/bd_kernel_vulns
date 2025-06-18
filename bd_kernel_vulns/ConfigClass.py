@@ -47,7 +47,7 @@ class Config:
     
         self.logger.debug("ARGUMENTS:")
         for arg in vars(args):
-            self.logger.debug(f"--{arg}={getattr(args, arg)}")
+            self.logger.debug(f"    --{arg}={getattr(args, arg)}")
         self.logger.debug('')
     
         url = os.environ.get('BLACKDUCK_URL')
