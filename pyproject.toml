@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "bd_kernel_vulns"
-version = "1.0"
+version = "1.0.1"
 authors = [
   { name="Matthew Brady", email="mbrad@blackduck.com" },
 ]
@@ -24,8 +24,8 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/matthewb66/bd_kernel_vulns"
-Issues = "https://github.com/matthewb66/bd_kernel_vulns/issues"
+Homepage = "https://github.com/blackducksoftware/bd_kernel_vulns"
+Issues = "https://github.com/blackducksoftware/bd_kernel_vulns/issues"
 
 [project.scripts]
-bd-scan-yocto-via-sbom = "bd_kernel_vulns:main.main"
+bd-kernel-vulns = "bd_kernel_vulns:main.main"

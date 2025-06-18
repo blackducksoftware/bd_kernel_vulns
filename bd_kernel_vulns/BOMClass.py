@@ -112,11 +112,11 @@ class BOM:
 
         self.vulnlist.add_vuln_data(asyncio.run(self.vulnlist.async_get_vuln_data(self.bd, conf)), conf)
 
-    def ignore_vulns_async(self):
+    def ignore_vulns_async(self, conf):
         if platform.system() == "Windows":
             asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
-        data = asyncio.run(self.vulnlist.async_ignore_vulns(self.bd))
+        data = asyncio.run(self.vulnlist.async_ignore_vulns(self.bd, conf))
         return len(data)
 
     def ignore_vulns(self, conf):  # DEBUG

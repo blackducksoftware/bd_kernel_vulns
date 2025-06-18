@@ -122,9 +122,9 @@ class Vuln:
         pattern = r'[\w/\.-]+\.[ch]\b'
         res = re.findall(pattern, sline)
         arr = []
-        for str in res:
-            if str not in arr:
-                arr.append(str)
+        for s in res:
+            if s not in arr:
+                arr.append(s)
         return arr
 
     def get_vuln_source(self):

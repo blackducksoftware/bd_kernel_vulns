@@ -19,7 +19,7 @@ def main():
 
 
 def process_kernel_vulns(blackduck_url, blackduck_api_token, kernel_source_file,
-                         project, version, logger, blackduck_trust_cert=False, folders=''):
+                         project, version, logger, blackduck_trust_cert=False, folders=False):
     conf = Config()
     conf.bd_url = blackduck_url
     conf.bd_api = blackduck_api_token
@@ -58,7 +58,7 @@ def process(conf):
     conf.logger.info(f"Identified {bom.count_in_kernel_vulns()} in-scope kernel vulns "
                      f"({bom.count_not_in_kernel_vulns()} not in-scope)")
 
-    conf.logger.info(f"Ignored {bom.ignore_vulns_async()} vulns")
+    conf.logger.info(f"Ignored {bom.ignore_vulns_async(conf)} vulns")
     # bom.ignore_vulns()
     conf.logger.info("Done")
 
