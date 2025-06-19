@@ -16,6 +16,7 @@ class Config:
         self.kernel_source_file = ''
         self.folders = False
         self.debug = False
+        self.kernel_comp_name = 'Linux Kernel'
 
     def get_cli_args(self):
         parser = argparse.ArgumentParser(description='Black Duck vulns', prog='bd_vulns')
@@ -32,6 +33,8 @@ class Config:
         parser.add_argument("-k", "--kernel_source_file", help="Kernel source files list (REQUIRED)", default="")
         parser.add_argument("--folders", help="Kernel Source file only contains folders to be used to map vulns",
                             action='store_true')
+        parser.add_argument("--kernel_comp_name", help="Kernel Component Name (default 'Linux Kernel')", default="Linux Kernel")
+
         
         args = parser.parse_args()
 
@@ -91,6 +94,8 @@ class Config:
     
         if args.folders == 'true':
             self.folders = True
+
+        self.kernel_comp_name = args.kernel_comp_name
     
         if terminate:
             return False

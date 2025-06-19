@@ -17,6 +17,11 @@ class KernelSource:
                 if line.endswith('.c') or line.endswith('.h'):
                     self.file_arr.append(line)
             else:
+                if not line.endswith('/'):
+                    line += '/'
+                if not line.startswith('/'):
+                    line = '/' + line
+
                 self.file_arr.append(line)
 
     def check_files(self, f_arr):
@@ -26,8 +31,7 @@ class KernelSource:
                     if kf.endswith(f):
                         return True
                 else:
-                    folder = f + '/'
-                    if kf.find(folder) != -1:
+                    if kf.find(f) != -1:
                         return True
         return False
 

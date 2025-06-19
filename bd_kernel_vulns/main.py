@@ -4,6 +4,7 @@ from .BOMClass import BOM
 from .KernelSourceClass import KernelSource
 from .ConfigClass import Config
 import sys
+import logging
 
 # logger = config.setup_logger('kernel-vulns')
 
@@ -20,16 +21,21 @@ def main():
 
 
 def process_kernel_vulns(blackduck_url, blackduck_api_token, kernel_source_file,
-                         project, version, logger, blackduck_trust_cert=False, folders=False):
+                         project, version, logger=None, blackduck_trust_cert=False, folders=False,
+                         kernel_comp_name='Linux Kernel'):
     conf = Config()
     conf.bd_url = blackduck_url
     conf.bd_api = blackduck_api_token
     conf.bd_project = project
     conf.bd_version = version
-    conf.logger = logger
+    if logger:
+        conf.logger = logger
+    else:
+        conf.logger = logging
     conf.bd_trustcert = blackduck_trust_cert
     conf.folders = folders
     conf.kernel_source_file = kernel_source_file
+    conf.kernel_comp_name = kernel_comp_name
 
     process(conf)
 
@@ -42,7 +48,7 @@ def process(conf):
                       f"'{conf.kernel_source_file}'")
 
     bom = BOM(conf)
-    if bom.check_kernel_comp():
+    if bom.check_kernel_comp(conf):
         conf.logger.warn("Linux Kernel not found in project - terminating")
         sys.exit(-1)
 
@@ -59,7 +65,7 @@ def process(conf):
     conf.logger.info(f"Identified {bom.count_in_kernel_vulns()} in-scope kernel vulns "
                      f"({bom.count_not_in_kernel_vulns()} not in-scope)")
 
-    conf.logger.info(f"Ignored {bom.ignore_vulns_async(conf)} vulns")
+    conf.logger.info(f"Ignored {bom.ignore_vulns_async()} vulns")
     # bom.ignore_vulns()
     conf.logger.info("Done")
 
