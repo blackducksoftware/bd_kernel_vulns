@@ -10,7 +10,8 @@ import sys
 
 def main():
     conf = Config()
-    conf.get_cli_args()
+    if not conf.get_cli_args():
+        sys.exit(1)
 
     process(conf)
     # config.check_args(args)
