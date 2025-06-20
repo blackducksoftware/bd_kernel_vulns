@@ -135,25 +135,25 @@ class Component:
     #     debug(f"filter_name_string(): Compname '{name}' replaced with '{ret_name}'")
     #     return ret_name.lower()
 
-    @staticmethod
-    def filter_version_string(version):
-        # Remove +git*
-        # Remove -snapshot*
-        # Replace / with space
-        ret_version = re.sub(r"\+git.*", r"", version, flags=re.IGNORECASE)
-        ret_version = re.sub(r"-snapshot.*", r"", ret_version, flags=re.IGNORECASE)
-        ret_version = re.sub(r"/", r" ", ret_version)
-        ret_version = re.sub(r"^v", r"", ret_version, flags=re.IGNORECASE)
-        ret_version = re.sub(r"\+*", r"", ret_version, flags=re.IGNORECASE)
+    # @staticmethod
+    # def filter_version_string(version):
+    #     # Remove +git*
+    #     # Remove -snapshot*
+    #     # Replace / with space
+    #     ret_version = re.sub(r"\+git.*", r"", version, flags=re.IGNORECASE)
+    #     ret_version = re.sub(r"-snapshot.*", r"", ret_version, flags=re.IGNORECASE)
+    #     ret_version = re.sub(r"/", r" ", ret_version)
+    #     ret_version = re.sub(r"^v", r"", ret_version, flags=re.IGNORECASE)
+    #     ret_version = re.sub(r"\+*", r"", ret_version, flags=re.IGNORECASE)
+    #
+    #     return ret_version.lower()
 
-        return ret_version.lower()
-
-    def get_compid(self):
-        try:
-            compurl = self.data['component']
-            return compurl.split('/')[-1]
-        except KeyError:
-            return ''
+    # def get_compid(self):
+    #     try:
+    #         compurl = self.data['component']
+    #         return compurl.split('/')[-1]
+    #     except KeyError:
+    #         return ''
 
     # def print_origins(self):
     #     try:
@@ -193,7 +193,7 @@ class Component:
     #         count += 1
     #     return data
 
-    def check_kernel(self):
-        if self.name == 'Linux Kernel':
+    def check_kernel(self, conf):
+        if self.name == conf.kernel_comp_name:
             return True
         return False

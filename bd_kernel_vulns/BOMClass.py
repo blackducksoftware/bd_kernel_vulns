@@ -119,8 +119,8 @@ class BOM:
         data = asyncio.run(self.vulnlist.async_ignore_vulns(self.bd, conf))
         return len(data)
 
-    def ignore_vulns(self, conf):  # DEBUG
-        self.vulnlist.ignore_vulns(self.bd, conf)
+    # def ignore_vulns(self, conf):  # DEBUG
+    #     self.vulnlist.ignore_vulns(self.bd, conf)
 
     def process_kernel_vulns(self, conf, kfiles):
         self.vulnlist.process_kernel_vulns(conf, kfiles)
@@ -137,5 +137,5 @@ class BOM:
     def count_not_in_kernel_vulns(self):
         return self.vulnlist.count() - self.vulnlist.count_in_kernel()
 
-    def check_kernel_comp(self):
-        return self.complist.check_kernel()
+    def check_kernel_comp(self, conf):
+        return self.complist.check_kernel(conf)

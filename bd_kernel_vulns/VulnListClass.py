@@ -11,7 +11,8 @@ from .KernelSourceClass import KernelSource
 class VulnList:
     def __init__(self):
         self.vulns = []
-        self.associated_vulns = []
+        # self.associated_vulns = []
+        self.associated_vuln_ids = []
 
     def add_comp_data(self, data, conf):
         conf.logger.debug(f"Vulnlist: processing {len(data)} vulns from compdata")
@@ -27,7 +28,7 @@ class VulnList:
             if vuln.is_ignored():
                 ignored += 1
                 continue
-            if vuln.is_kernel_vuln():
+            if vuln.is_kernel_vuln(conf):
                 self.vulns.append(vuln)
         conf.logger.debug(f"Skipped {ignored} ignored vulns")
 
@@ -39,9 +40,8 @@ class VulnList:
         return None
 
     def is_associated_vuln(self, id):
-        for vuln in self.associated_vulns:
-            if vuln == id:
-                return True
+        if id in self.associated_vuln_ids:
+            return True
         return False
 
     def add_vuln_data(self, data, conf):
@@ -62,7 +62,7 @@ class VulnList:
                             if linked_vuln:
                                 if linked_vuln in data.keys():
                                     vuln.add_linked_cve_data(data[linked_vuln])
-                                    self.associated_vulns.append(id)
+                                    self.associated_vuln_ids.append(id)
         except KeyError as e:
             conf.logger.error(f"add_vuln_data(): Key Error {e}")
 
@@ -70,7 +70,7 @@ class VulnList:
 
     def process_kernel_vulns(self, conf, kfiles: KernelSource):
         for vuln in self.vulns:
-            if vuln.is_ignored() or vuln.get_id() in self.associated_vulns:
+            if vuln.is_ignored() or vuln.get_id() in self.associated_vuln_ids:
                 continue
             files = vuln.process_kernel_vuln(conf)
             if len(files) == 0 or kfiles.check_files(files):
@@ -93,9 +93,9 @@ class VulnList:
     # def remediate_vulns(self):
     #     for vuln in self.vulns:
 
-    def ignore_vulns(self, bd, conf):  # DEBUG
-        for vuln in self.vulns:
-            vuln.ignore_vuln(bd, conf)
+    # def ignore_vulns(self, bd, conf):  # DEBUG
+    #     for vuln in self.vulns:
+    #         vuln.ignore_vuln(bd, conf)
 
     async def async_get_vuln_data(self, bd, conf):
         token = bd.session.auth.bearer_token
@@ -113,7 +113,8 @@ class VulnList:
                     linked_vuln = vuln.get_linked_vuln()
                     if linked_vuln != '':
                         lvuln = Vuln({}, conf, linked_vuln)
-                        self.associated_vulns.append(lvuln)
+                        # self.associated_vulns.append(lvuln)
+                        self.associated_vuln_ids.append(lvuln.id)
                         vuln_task = asyncio.ensure_future(lvuln.async_get_vuln_data(bd, conf, session, token))
                         vuln_tasks.append(vuln_task)
 
