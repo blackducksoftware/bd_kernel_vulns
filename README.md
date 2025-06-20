@@ -1,4 +1,4 @@
-# Black Duck SCA Kernel Vuln Processor - bd_kernel_vulns.py v1.0.2
+# Black Duck SCA Kernel Vuln Processor - bd_kernel_vulns.py v1.0.3
 
 # PROVISION OF THIS SCRIPT
 This script is provided under the MIT license (see LICENSE file).

@@ -65,7 +65,7 @@ def process(conf):
     conf.logger.info(f"Identified {bom.count_in_kernel_vulns()} in-scope kernel vulns "
                      f"({bom.count_not_in_kernel_vulns()} not in-scope)")
 
-    conf.logger.info(f"Ignored {bom.ignore_vulns_async()} vulns")
+    conf.logger.info(f"Ignored {bom.ignore_vulns_async(conf)} vulns")
     # bom.ignore_vulns()
     conf.logger.info("Done")
 
