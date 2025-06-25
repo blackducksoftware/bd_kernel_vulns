@@ -17,6 +17,9 @@ class Config:
         self.folders = False
         self.debug = False
         self.kernel_comp_name = 'Linux Kernel'
+        self.remediation_status = "NOT_AFFECTED"
+        self.remediation_justification = "NO_CODE"
+        self.source_file_names_only = False
 
     def get_cli_args(self):
         parser = argparse.ArgumentParser(description='Black Duck vulns', prog='bd_vulns')
@@ -34,7 +37,20 @@ class Config:
         parser.add_argument("--folders", help="Kernel Source file only contains folders to be used to map vulns",
                             action='store_true')
         parser.add_argument("--kernel_comp_name", help="Kernel Component Name (default 'Linux Kernel')", default="Linux Kernel")
-
+        parser.add_argument("-s", "--remediation_status",
+                            help="Vulnerability Remediation Status to apply - Default NOT_AFFECTED "
+                                 "(Options REMEDIATION_COMPLETE, NOT_AFFECTED, MITIGATED, DUPLICATE, IGNORED, "
+                                 "PATCHED, NEW, UNDER_INVESTIGATION, NEEDS_REVIEW, AFFECTED, "
+                                 "REMEDIATION_REQUIRED)", default="NOT_AFFECTED")
+        parser.add_argument("--remediation_justification",
+                            help="Vulnerability Remediation Justification - Default NO_CODE "
+                                 "(Options NO_COMPONENT, NO_CODE, NOT_CONTROLLED, NOT_EXECUTED, "
+                                 "ALREADY_MITIGATED, MITIGATION, NO_FIX_PLANNED, "
+                                 "NONE_AVAILABLE, VENDOR_FIX, WORKAROUND - only applied if NOT_AFFECTED "
+                                 "or AFFECTED selected for remediation status)", default="NO_CODE")
+        parser.add_argument("--source_file_names_only",
+                            help="Match only source file names from vulnerabilities"
+                                 "against the supplied source file list", action='store_true')
         
         args = parser.parse_args()
 
@@ -91,12 +107,17 @@ class Config:
         else:
             self.logger.error(f"Kernel source list file required (--kernel_source_list)")
             terminate = True
-    
-        if args.folders == 'true':
-            self.folders = True
 
+        self.folders = args.folders
         self.kernel_comp_name = args.kernel_comp_name
-    
+        self.remediation_status = args.remediation_status
+        self.remediation_justification = args.remediation_justification
+        self.source_file_names_only = args.source_file_names_only
+
+        if self.folders and self.source_file_names_only:
+            self.logger.error(f"Options --folders and --source_file_names_only specified which are mutually exclusive")
+            terminate = True
+
         if terminate:
             return False
         return True

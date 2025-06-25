@@ -6,20 +6,21 @@ import datetime
 
 
 class Vuln:
-    def __init__(self, data, conf, id='', cve_data=None):
+    def __init__(self, data, conf, cve_data=None, id=''):
         self.comp_vuln_data = data
         self.bdsa_data = None
         self.cve_data = cve_data
-        self.linked_cve_data = None
-        self.id = id
         self.in_kernel = True
         self.sourcefiles = []
-        if self.id == '':
-            # self.id = self.get_id()
-            if 'vulnerability' in self.comp_vuln_data:
-                self.id = self.comp_vuln_data['vulnerability']['vulnerabilityId']
-            else:
-                conf.logger.error('Unable to determine vuln id')
+        # self.id = self.get_id()
+        if 'vulnerability' in self.comp_vuln_data and 'vulnerabilityId' in self.comp_vuln_data['vulnerability']:
+            self.id = self.comp_vuln_data['vulnerability']['vulnerabilityId']
+        elif self.cve_data and 'name' in self.cve_data:
+            self.id = self.cve_data['name']
+        elif id != '':
+            self.id = id
+        else:
+            conf.logger.error('Unable to determine vuln id')
 
     def get_id(self):
         return self.id
@@ -30,40 +31,39 @@ class Vuln:
         except KeyError:
             return ''
 
-    def severity(self):
-        try:
-            return self.comp_vuln_data['vulnerability']['severity']
-        except KeyError:
-            return ''
+    # def severity(self):
+    #     try:
+    #         return self.comp_vuln_data['vulnerability']['severity']
+    #     except KeyError:
+    #         return ''
+    #
+    # def related_vuln(self):
+    #     try:
+    #         return self.comp_vuln_data['vulnerability']['relatedVulnerability'].split('/')[-1]
+    #     except KeyError:
+    #         return ''
+    #
+    # def component(self):
+    #     try:
+    #         return f"{self.comp_vuln_data['componentName']}/{self.comp_vuln_data['componentVersionName']}"
+    #     except KeyError:
+    #         return ''
 
-    def related_vuln(self):
-        try:
-            return self.comp_vuln_data['vulnerability']['relatedVulnerability'].split('/')[-1]
-        except KeyError:
-            return ''
-
-    def component(self):
-        try:
-            return f"{self.comp_vuln_data['componentName']}/{self.comp_vuln_data['componentVersionName']}"
-        except KeyError:
-            return ''
-
-    def get_linked_vuln(self):
+    def get_linked_cve(self):
         # vuln_url = f"{bd.base_url}/api/vulnerabilities/{self.id()}"
         # vuln_data = self.get_data(bd, vuln_url, "application/vnd.blackducksoftware.vulnerability-4+json")
 
         try:
-            if self.get_vuln_source() == 'BDSA':
+            if self.get_vuln_origin() == 'BDSA':
                 if self.comp_vuln_data['vulnerability']['relatedVulnerability'] != '':
                     cve = self.comp_vuln_data['vulnerability']['relatedVulnerability'].split("/")[-1]
                     return cve
-
-                # for x in self.comp_vuln_data['_meta']['links']:
-                #     if x['rel'] == 'related-vulnerability':
-                #         if x['label'] == 'NVD':
-                #             cve = x['href'].split("/")[-1]
-                #             return cve
-                #         break
+                elif self.bdsa_data and '_meta' in self.bdsa_data and 'links' in self.bdsa_data['_meta']:
+                    for link in self.bdsa_data['_meta']['links']:
+                        if link['rel'] == 'related-vulnerability':
+                            href = link['href']
+                            cve = href.split('/')[-1]
+                            return cve
             else:
                 return ''
         except KeyError:
@@ -77,12 +77,12 @@ class Vuln:
         res = bd.get_json(url, headers=headers)
         return res
 
-    def get_component(self):
-        try:
-            return self.comp_vuln_data['componentName']
-        except KeyError:
-            return ''
-
+    # def get_component(self):
+    #     try:
+    #         return self.comp_vuln_data['componentName']
+    #     except KeyError:
+    #         return ''
+    #
     def vuln_url(self, bd):
         return f"{bd.base_url}/api/vulnerabilities/{self.get_id()}"
 
@@ -93,17 +93,21 @@ class Vuln:
             return ''
 
     def get_associated_vuln_url(self, bd):
-        return f"{bd.base_url}/api/vulnerabilities/{self.get_linked_vuln()}"
+        return f"{bd.base_url}/api/vulnerabilities/{self.get_id()}"
 
     def is_ignored(self):
-        if self.comp_vuln_data['ignored']:
-            return True
-        if 'vulnerability' in self.comp_vuln_data:
-            if self.comp_vuln_data['vulnerability']['remediationStatus'] == 'IGNORED':
+        try:
+            if self.comp_vuln_data['ignored']:
                 return True
+            if 'vulnerability' in self.comp_vuln_data and 'remediationStatus' in self.comp_vuln_data['vulnerability']:
+                if self.comp_vuln_data['vulnerability']['remediationStatus'] in [
+                    "REMEDIATION_COMPLETE", "NOT_AFFECTED", "MITIGATED", "DUPLICATE", "IGNORED", "PATCHED"]:
+                    return True
+                else:
+                    return False
             else:
                 return False
-        else:
+        except Exception as e:
             return False
 
     def add_data(self, data):
@@ -115,8 +119,8 @@ class Vuln:
         except KeyError:
             return
 
-    def add_linked_cve_data(self, data):
-        self.linked_cve_data = data
+    # def add_linked_cve_data(self, data):
+    #     self.linked_cve_data = data
 
     @staticmethod
     def find_sourcefile(sline):
@@ -128,7 +132,7 @@ class Vuln:
                 arr.append(s)
         return arr
 
-    def get_vuln_source(self):
+    def get_vuln_origin(self):
         try:
             if 'source' in self.comp_vuln_data and self.comp_vuln_data['source'] != '':
                 return self.comp_vuln_data['source']
@@ -142,14 +146,14 @@ class Vuln:
         except KeyError:
             return ''
 
-    def process_kernel_vuln(self, conf):
+    def get_kernel_vuln_sourcefiles(self, conf):
         try:
-            if self.get_vuln_source() == 'NVD':
+            if self.get_vuln_origin() == 'NVD' and self.cve_data:
                 self.sourcefiles = self.find_sourcefile(self.cve_data['description'])
                 if len(self.sourcefiles) == 0:
                     desc = self.cve_data['description'].replace('\n', ' ')
                     conf.logger.debug(f"CVE {self.get_id()} - Description: {desc}")
-            elif self.get_vuln_source() == 'BDSA':
+            elif self.get_vuln_origin() == 'BDSA' and self.bdsa_data:
                 self.sourcefiles = self.find_sourcefile(self.bdsa_data['description'])
                 if len(self.sourcefiles) == 0:
                     self.sourcefiles = self.find_sourcefile(self.bdsa_data['technicalDescription'])
@@ -158,11 +162,13 @@ class Vuln:
                         conf.logger.debug(f"BDSA {self.get_id()} - Description: {bdsa}")
                         tech = self.bdsa_data['technicalDescription'].replace('\n', ' ')
                         conf.logger.debug(f"BDSA {self.get_id()} - Technical Description: {tech}")
-                        if self.linked_cve_data:
-                            # No source file found - need to check for linked CVE
-                            self.sourcefiles = self.find_sourcefile(self.linked_cve_data['description'])
-                            cve = self.linked_cve_data['description'].replace('\n', ' ')
-                            conf.logger.debug(f"Linked CVE Description: {cve}")
+                        # if self.linked_cve_data:
+                        #     # No source file found - need to check for linked CVE
+                        #     self.sourcefiles = self.find_sourcefile(self.linked_cve_data['description'])
+                        #     cve = self.linked_cve_data['description'].replace('\n', ' ')
+                        #     conf.logger.debug(f"Linked CVE Description: {cve}")
+            else:
+                conf.logger.debug(f"Vuln {self.get_id()} - Unable to process_kernel_vuln")
 
             return self.sourcefiles
             # print(f"{self.get_id()}: {sourcefile}")
@@ -170,9 +176,12 @@ class Vuln:
             return []
 
     def is_kernel_vuln(self, conf):
-        if self.comp_vuln_data['componentName'] == conf.kernel_comp_name:
-            return True
-        return False
+        try:
+            if self.comp_vuln_data['componentName'] == conf.kernel_comp_name:
+                return True
+            return False
+        except Exception as e:
+            return False
 
     def set_not_in_kernel(self):
         self.in_kernel = False
@@ -202,7 +211,7 @@ class Vuln:
     #         logger.error("Unable to update vulnerabilities via API\n" + str(e))
     #         return False
 
-    async def async_get_vuln_data(self, bd, conf, session, token):
+    async def async_get_directvuln_data(self, bd, conf, session, token):
         if conf.bd_trustcert:
             ssl = False
         else:
@@ -215,22 +224,25 @@ class Vuln:
         # resp = globals.bd.get_json(thishref, headers=headers)
         async with session.get(self.vuln_url(bd), headers=headers, ssl=ssl) as resp:
             result_data = await resp.json()
-        return self.get_id(), result_data
+        return self.url(), result_data
 
-    # async def async_get_associated_vuln_data(self, bd, conf, session, token):
-    #     if conf.bd_trustcert:
-    #         ssl = False
-    #     else:
-    #         ssl = None
-    #
-    #     headers = {
-    #         # 'accept': "application/vnd.blackducksoftware.bill-of-materials-6+json",
-    #         'Authorization': f'Bearer {token}',
-    #     }
-    #     # resp = globals.bd.get_json(thishref, headers=headers)
-    #     async with session.get(self.get_associated_vuln_url(bd), headers=headers, ssl=ssl) as resp:
-    #         result_data = await resp.json()
-    #     return self.get_id(), result_data
+    async def async_get_associatedvuln_data(self, bd, conf, session, token):
+        if conf.bd_trustcert:
+            ssl = False
+        else:
+            ssl = None
+
+        headers = {
+            # 'accept': "application/vnd.blackducksoftware.bill-of-materials-6+json",
+            'Authorization': f'Bearer {token}',
+        }
+        # resp = globals.bd.get_json(thishref, headers=headers)
+        async with session.get(self.get_associated_vuln_url(bd), headers=headers, ssl=ssl) as resp:
+            result_data = await resp.json()
+            if resp.status != 200:
+                print(result_data)
+
+        return self.get_id(), result_data
 
     async def async_ignore_vuln(self, conf, session, token):
         if conf.bd_trustcert:
@@ -250,7 +262,9 @@ class Vuln:
         # payload['remediationJustification'] = "NO_CODE"
         payload['comment'] = (f"Remediated by bd-kernel-vulns utility {mydate} - "
                               f"vuln refers to source files {self.sourcefiles} reported not included in kernel")
-        payload['remediationStatus'] = "IGNORED"
+        payload['remediationStatus'] = conf.remediation_status
+        if conf.remediation_status in ["AFFECTED", "NOT_AFFECTED"]:
+            payload['remediationJustification'] = conf.remediation_justification
 
         conf.logger.debug(f"{self.id} - {self.url()}")
         async with session.put(self.url(), headers=headers, json=payload, ssl=ssl) as response:

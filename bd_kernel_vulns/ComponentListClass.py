@@ -7,9 +7,9 @@ class ComponentList:
     def __init__(self):
         self.components = []
 
-    # def add(self, comp):
-    #     self.components.append(comp)
-    #
+    def add(self, comp):
+        self.components.append(comp)
+
     # def count(self):
     #     return len(self.components)
     #
@@ -24,9 +24,10 @@ class ComponentList:
         for comp in self.components:
             comp.get_vulns()
 
-    def check_kernel(self, conf):
+    def count_kernel_comps(self, conf):
+        count = 0
         for comp in self.components:
-            if comp.is_kernel(conf):
-                return True
+            if comp.check_kernel(conf):
+                count += 1
 
-        return False
+        return count

@@ -24,11 +24,15 @@ class KernelSource:
 
                 self.file_arr.append(line)
 
-    def check_files(self, f_arr):
+    def check_files(self, conf, f_arr):
         for f in f_arr:
+            if conf.source_file_names_only:
+                fname = f.split('/')[-1]
+            else:
+                fname = f
             for kf in self.file_arr:
                 if not self.folders:
-                    if kf.endswith(f):
+                    if kf.endswith(fname):
                         return True
                 else:
                     if kf.find(f) != -1:

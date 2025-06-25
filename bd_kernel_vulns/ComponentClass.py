@@ -1,5 +1,5 @@
 # import global_values
-import re
+# import re
 # import global_values
 # import logging
 # from thefuzz import fuzz
@@ -7,11 +7,11 @@ from .VulnListClass import VulnList
 
 
 class Component:
-    def __init__(self, name, version):
+    def __init__(self, name, version, data):
         self.name = name
         self.version = version
         self.vulnlist = VulnList()
-        self.data = None
+        self.data = data
 
     # def get_matchtypes(self):
     #     try:
