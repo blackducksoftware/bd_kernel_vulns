@@ -1,6 +1,6 @@
 # import config
 from .ComponentListClass import ComponentList
-# from ComponentClass import Component
+from .ComponentClass import Component
 from .VulnListClass import VulnList
 # from . import global_values
 # import logging
@@ -24,6 +24,10 @@ class BOM:
                 verify=(not conf.bd_trustcert),  # TLS certificate verification
                 timeout=60
             )
+
+            if not self.check_bd_version(conf) and conf.remediation_status == 'NOT_AFFECTED':
+                conf.logger.info("BD server version is earlier than 2025.1.0 - will use supported remediation status IGNORE")
+                conf.remediation_status = 'IGNORE'
 
             conf.logger.info(f"Working on project '{conf.bd_project}' version '{conf.bd_version}'")
 
@@ -50,30 +54,71 @@ class BOM:
             sys.exit(-1)
         return
 
-    def get_paginated_data(self, url, accept_hdr):
-        headers = {
-            'accept': accept_hdr,
-        }
-        url = url + "?limit=1000"
-        res = self.bd.get_json(url, headers=headers)
-        if 'totalCount' in res and 'items' in res:
-            total_comps = res['totalCount']
-        else:
+    def get_comps(self, conf):
+        self.complist = ComponentList()  # Reset component list
+
+        res = self.bd.list_resources(self.bdver_dict)
+        self.projver = res['href']
+        thishref = f"{self.projver}/components"
+
+        bom_arr = self.get_paginated_data(conf, thishref, "application/vnd.blackducksoftware.bill-of-materials-6+json")
+
+        for comp in bom_arr:
+            if 'componentVersion' not in comp:
+                continue
+            # compver = comp['componentVersion']
+
+            compclass = Component(comp['componentName'], comp['componentVersionName'], comp)
+            self.complist.add(compclass)
+
+        return
+
+    def check_bd_version(self, conf):
+        try:
+            if not self.bd:
+                return
+            headers = {
+                'accept': 'application/vnd.blackducksoftware.status-4+json'
+            }
+            url = self.bd.base_url + "/api/current-version"
+            res = self.bd.get_json(url, headers=headers)
+            if 'version' in res:
+                ver_arr = res['version'].split('.')
+                yr = int(ver_arr[0])
+                if yr >= 2025:
+                    return True
+        except Exception as e:
+            conf.logger.error(f"Unable to get BD server version - {e}")
+        return False
+
+    def get_paginated_data(self, conf, url, accept_hdr):
+        try:
+            headers = {
+                'accept': accept_hdr,
+            }
+            url = url + "?limit=1000"
+            res = self.bd.get_json(url, headers=headers)
+            if 'totalCount' in res and 'items' in res:
+                total_comps = res['totalCount']
+            else:
+                return []
+
+            ret_arr = []
+            downloaded_comps = 0
+            while downloaded_comps < total_comps:
+                downloaded_comps += len(res['items'])
+
+                ret_arr += res['items']
+
+                newurl = f"{url}&offset={downloaded_comps}"
+                res = self.bd.get_json(newurl, headers=headers)
+                if 'totalCount' not in res or 'items' not in res:
+                    break
+
+            return ret_arr
+        except Exception as e:
+            conf.logger.error(f"get_paginated_data: error {e}")
             return []
-
-        ret_arr = []
-        downloaded_comps = 0
-        while downloaded_comps < total_comps:
-            downloaded_comps += len(res['items'])
-
-            ret_arr += res['items']
-
-            newurl = f"{url}&offset={downloaded_comps}"
-            res = self.bd.get_json(newurl, headers=headers)
-            if 'totalCount' not in res or 'items' not in res:
-                break
-
-        return ret_arr
 
     def get_project(self, conf):
         params = {
@@ -103,14 +148,20 @@ class BOM:
 
     def get_vulns(self, conf):
         vuln_url = f"{self.projver}/vulnerable-bom-components"
-        vuln_arr = self.get_paginated_data(vuln_url, "application/vnd.blackducksoftware.bill-of-materials-8+json")
+        vuln_arr = self.get_paginated_data(conf, vuln_url, "application/vnd.blackducksoftware.bill-of-materials-8+json")
         self.vulnlist.add_comp_data(vuln_arr, conf)
 
-    def process_data_async(self, conf):
+    def process_directvulns_async(self, conf):
         if platform.system() == "Windows":
             asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
-        self.vulnlist.add_vuln_data(asyncio.run(self.vulnlist.async_get_vuln_data(self.bd, conf)), conf)
+        self.vulnlist.add_directvuln_data(asyncio.run(self.vulnlist.async_get_directvuln_data(self.bd, conf)), conf)
+
+    def process_associatedvulns_async(self, conf):
+        if platform.system() == "Windows":
+            asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+
+        self.vulnlist.add_associatedvuln_data(asyncio.run(self.vulnlist.async_get_associatedvuln_data(self.bd, conf)), conf)
 
     def ignore_vulns_async(self, conf):
         if platform.system() == "Windows":
@@ -137,5 +188,5 @@ class BOM:
     def count_not_in_kernel_vulns(self):
         return self.vulnlist.count() - self.vulnlist.count_in_kernel()
 
-    def check_kernel_comp(self, conf):
-        return self.complist.check_kernel(conf)
+    def count_kernel_comps(self, conf):
+        return self.complist.count_kernel_comps(conf)

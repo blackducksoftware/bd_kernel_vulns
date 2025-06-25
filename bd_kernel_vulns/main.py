@@ -43,29 +43,37 @@ def process_kernel_vulns(blackduck_url, blackduck_api_token, kernel_source_file,
 
 
 def process(conf):
+    bom = BOM(conf)
+    bom.get_comps(conf)
+    count = bom.count_kernel_comps(conf)
+    if count == 0:
+        conf.logger.warn("Linux Kernel not found in project - terminating (use --kernel_comp_name if not 'Linux Kernel')")
+        sys.exit(-1)
+    else:
+        conf.logger.info(f"Found {count} Linux Kernel components in project")
+
     kfiles = KernelSource(conf)
-    conf.logger.debug(f"Read {kfiles.count()} source entries from kernel source file "
+    conf.logger.info(f"Read {kfiles.count()} source entries from kernel source file "
                       f"'{conf.kernel_source_file}'")
 
-    bom = BOM(conf)
-    if bom.check_kernel_comp(conf):
-        conf.logger.warn("Linux Kernel not found in project - terminating")
-        sys.exit(-1)
-
+    conf.logger.info("Processing kernel vulnerabilities:")
     bom.get_vulns(conf)
-    conf.logger.info(f"Found {bom.count_vulns()} kernel vulnerabilities from project")
+    conf.logger.info(f"- Found {bom.count_vulns()} unremediated kernel vulnerabilities within project")
 
     # bom.print_vulns()
-    conf.logger.info("Get detailed data for vulnerabilities")
-    bom.process_data_async(conf)
+    conf.logger.info("- Getting detailed data for direct kernel vulnerabilities ...")
+    bom.process_directvulns_async(conf)
 
-    conf.logger.info("Checking for kernel source file references in vulnerabilities")
+    conf.logger.info("- Getting detailed data for associated kernel vulnerabilities ...")
+    bom.process_associatedvulns_async(conf)
+
+    conf.logger.info("- Checking for kernel source file references in vulnerabilities")
     bom.process_kernel_vulns(conf, kfiles)
 
-    conf.logger.info(f"Identified {bom.count_in_kernel_vulns()} in-scope kernel vulns "
-                     f"({bom.count_not_in_kernel_vulns()} not in-scope)")
+    conf.logger.info(f"- Identified {bom.count_not_in_kernel_vulns()} not in-scope kernel vulns which can be ignored "
+                     f"({bom.count_in_kernel_vulns()} in-scope kernel vulns - not modified)")
 
-    conf.logger.info(f"Ignored {bom.ignore_vulns_async(conf)} vulns")
+    conf.logger.info(f"- Applied remediation status {conf.remediation_status} to {bom.ignore_vulns_async(conf)} kernel vulns")
     # bom.ignore_vulns()
     conf.logger.info("Done")
 
