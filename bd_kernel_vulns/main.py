@@ -22,7 +22,8 @@ def main():
 
 def process_kernel_vulns(blackduck_url, blackduck_api_token, kernel_source_file,
                          project, version, logger=None, blackduck_trust_cert=False, folders=False,
-                         kernel_comp_name='Linux Kernel'):
+                         kernel_comp_name='Linux Kernel', remediation_status='NOT_AFFECTED',
+                         remediation_justification='NO_CODE', source_file_names_only=False):
     conf = Config()
     conf.bd_url = blackduck_url
     conf.bd_api = blackduck_api_token
@@ -36,6 +37,9 @@ def process_kernel_vulns(blackduck_url, blackduck_api_token, kernel_source_file,
     conf.folders = folders
     conf.kernel_source_file = kernel_source_file
     conf.kernel_comp_name = kernel_comp_name
+    conf.remediation_status = remediation_status
+    conf.remediation_justification = remediation_justification
+    conf.source_file_names_only = source_file_names_only
 
     process(conf)
 
@@ -47,14 +51,15 @@ def process(conf):
     bom.get_comps(conf)
     count = bom.count_kernel_comps(conf)
     if count == 0:
-        conf.logger.warn("Linux Kernel not found in project - terminating (use --kernel_comp_name if not 'Linux Kernel')")
+        conf.logger.warn("Linux Kernel not found in project - terminating (use --kernel_comp_name "
+                         "for alternative kernel component name which is not 'Linux Kernel')")
         sys.exit(-1)
     else:
         conf.logger.info(f"Found {count} Linux Kernel components in project")
 
     kfiles = KernelSource(conf)
     conf.logger.info(f"Read {kfiles.count()} source entries from kernel source file "
-                      f"'{conf.kernel_source_file}'")
+                     f"'{conf.kernel_source_file}'")
 
     conf.logger.info("Processing kernel vulnerabilities:")
     bom.get_vulns(conf)
@@ -73,7 +78,8 @@ def process(conf):
     conf.logger.info(f"- Identified {bom.count_not_in_kernel_vulns()} not in-scope kernel vulns which can be ignored "
                      f"({bom.count_in_kernel_vulns()} in-scope kernel vulns - not modified)")
 
-    conf.logger.info(f"- Applied remediation status {conf.remediation_status} to {bom.ignore_vulns_async(conf)} kernel vulns")
+    conf.logger.info(f"- Applied remediation status {conf.remediation_status} to "
+                     f"{bom.ignore_vulns_async(conf)} kernel vulns")
     # bom.ignore_vulns()
     conf.logger.info("Done")
 

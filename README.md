@@ -1,4 +1,4 @@
-# Black Duck SCA Kernel Vuln Processor - bd_kernel_vulns.py v1.0.4
+# Black Duck SCA Kernel Vuln Processor - bd_kernel_vulns.py v1.0.5
 
 # PROVISION OF THIS SCRIPT
 This script is provided under the MIT license (see LICENSE file).
@@ -11,11 +11,12 @@ If you have comments or issues, please raise a GitHub issue here. Black Duck sup
 ## OVERVIEW OF BD_KERNEL_VULNS
 
 This utility accepts a file containing compiled kernel source files (or folders) to filter
-the vulnerabilities associated with the Linux Kernel component in a Black Duck SCA project version.
+the vulnerabilities associated with the 'Linux Kernel' components in a Black Duck SCA project version.
 
 Vulnerabilities which reference a kernel source file, but which do not match against the files/folders 
-in the supplied kernel source file will be marked as remediated.
-
+in the supplied kernel source file will be marked as remediated. The default remediation status is 'Not Affected', although
+this is only supported in BD versions 2025.1 and beyond, so for other BD server versions vulnerabilities will be marked
+'Ignored'.
 
 ## INSTALLATION
 
@@ -51,6 +52,21 @@ Alternatively, if you have cloned the repository locally:
 
 1. Invoke virtualenv where dependency packages were installed
 2. Run `python3 PATH_TO_REPOSITORY/run.py OPTIONS`
+
+The utility can also be called from another python program as follows:
+
+        from bd_kernel_vulns import main as bdkv_main
+        bdkv_main.process_kernel_vulns(blackduck_url=BDURL, 
+                                       blackduck_api_token=APITOKEN
+                                       kernel_source_file=KFILE, project=BDPROJECT,
+                                       version=BDPROJECT, logger=LOGGING,
+                                       blackduck_trust_cert=True,
+                                       remediation_status='NOT_AFFECTED',
+                                       remediation_justification='NO_CODE',
+                                       source_file_names_only=False
+
+where values can be specified as required. Note the parameters logger, blackduck_trust_cert, remediation_status, remediation_justification,
+and source_file_name_only are optional.
 
 ## COMMAND LINE OPTIONS
 
@@ -131,8 +147,8 @@ An example bash script to produce the list of kernel source files is shown below
 The [bd_scan_yocto_via_sbom](https://github.com/blackducksoftware/bd_scan_yocto_via_sbom) utility is recommended to 
 scan Yocto projects, and the `--process_kernel_vulns` option will call this utility to filter kernel vulnerabilities.
 
-However, if not using this script then processing the module image archive can generate the list of compiled source
-files as follows:
+However, if you want to use this utility directly on a Yocto project then processing the module image archive can 
+generate the list of compiled source files as follows:
 
 1. Locate the modules image archive file for the specific build (usually beneath the poky/build/tmp/deploy/images folder - for example `modules--6.12.31+git0+f2f3b6cbd9_fee8195f84-r0-qemux86-64-20250608200614.tgz`)
 2. Extract the list of modules from the file using `tar tf FILE | grep '.ko$' | sed -e 's/\.ko$/.c/g' > kfiles.lst`
