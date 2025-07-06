@@ -1,159 +1,220 @@
-# Black Duck SCA Kernel Vuln Processor - bd_kernel_vulns.py v1.0.5
 
-# PROVISION OF THIS SCRIPT
-This script is provided under the MIT license (see LICENSE file).
+# Black Duck SCA Kernel Vulnerability Processor - `bd_kernel_vulns.py` v1.0.5
 
-It does not represent any extension of licensed functionality of Black Duck Software itself and is provided as-is, without warranty or liability.
+## Project Status and Support
 
-If you have comments or issues, please raise a GitHub issue here. Black Duck support is not able to respond to support tickets for this OSS utility. Users of this pilot project commit to engage properly with the authors to address any identified issues.
+This script (`bd_kernel_vulns.py`) is provided under the [MIT license](https://www.google.com/search?q=LICENSE).
 
-# INTRODUCTION
-## OVERVIEW OF BD_KERNEL_VULNS
+It is an **open-source utility** and does not extend the licensed functionality of Black Duck Software. It is provided "as-is," without warranty or liability.
 
-This utility accepts a file containing compiled kernel source files (or folders) to filter
-the vulnerabilities associated with the 'Linux Kernel' components in a Black Duck SCA project version.
+For comments or issues, please [raise a GitHub issue here](https://github.com/blackducksoftware/bd_kernel_vulns/issues). **Black Duck Support cannot provide assistance for this OSS utility.** Users are encouraged to engage with the authors to address any identified issues.
 
-Vulnerabilities which reference a kernel source file, but which do not match against the files/folders 
-in the supplied kernel source file will be marked as remediated. The default remediation status is 'Not Affected', although
-this is only supported in BD versions 2025.1 and beyond, so for other BD server versions vulnerabilities will be marked
-'Ignored'.
+## Overview
 
-## INSTALLATION
+This script is for licensed users of Black Duck Software only. You will need access to a Black Duck SCA server and an API key to use it.
 
-1. Create virtualenv
-2. Run `pip3 install bd_kernel_vulns --upgrade`
+`bd_kernel_vulns` is a utility designed to **filter and remediate vulnerabilities associated with 'Linux Kernel' components** within a Black Duck SCA project version.
 
-Alternatively, if you want to build and install the utility locally:
+It works by accepting a file containing a list of your compiled kernel source files (or folders). Vulnerabilities that reference a kernel source file but **do not match** any of the files/folders in your supplied list will be automatically marked as remediated in Black Duck.
 
-1. clone the repository
-2. Create virtualenv
-3. Build the utility `python3 -m build`
-4. Install the package `pip3 install dist/bd_kernel_vulns-1.0.X-py3-none-any.whl --upgrade`
+The default kernel component is `Linux Kernel`; us the argument `--kernel_comp_name NAME` to specify a different component for processing. Other components in the project will not be processed.
 
-Alternatively, clone the repository locally:
+The default remediation status is `NOT_AFFECTED`. For Black Duck server versions older than **2025.1**, vulnerabilities will be marked as `IGNORED` instead, as the `NOT_AFFECTED` remediation status was introduced in the 2025.1 release.
 
-1. Clone the repository
-2. Ensure prerequisite packages are installed (see list in pyproject.toml)
+## Installation
 
-## PREREQUISITES
+You have a few options for installing `bd_kernel_vulns`:
 
-1. Black Duck SCA server 2024.1 or newer
-2. Black Duck SCA API with either Global Project Manager roles or Project BOM Manager roles for an existing project
-3. Python 3.10 or newer
+### Recommended: Install via pip
 
-## HOW TO RUN
+1.  **Create a Python virtual environment** (recommended):
+    ```bash
+    python3 -m venv venv_bd_kernel_vulns
+    source venv_bd_kernel_vulns/bin/activate # On Windows: .\venv_bd_kernel_vulns\Scripts\activate
+    ```
+2.  **Install the package:**
+    ```bash
+    pip3 install bd_kernel_vulns --upgrade
+    ```
 
-If you installed the utility as a package:
+### Install from Source (Local Build)
 
-1. Invoke virtualenv where utility was installed
-2. Run `bd-kernel-vulns OPTIONS`
+1.  **Clone the repository:**
+    ```bash
+    git clone https://github.com/blackducksoftware/bd_kernel_vulns.git
+    cd bd_kernel_vulns
+    ```
+2.  **Create a Python virtual environment** (recommended, see above).
+3.  **Build the utility:**
+    ```bash
+    python3 -m build
+    ```
+4.  **Install the package:**
+    ```bash
+    pip3 install dist/bd_kernel_vulns-1.0.X-py3-none-any.whl --upgrade
+    ```
+    (Replace `1.0.X` with the actual version number from the built wheel file).
 
-Alternatively, if you have cloned the repository locally:
+### Run Directly from Cloned Repository
 
-1. Invoke virtualenv where dependency packages were installed
-2. Run `python3 PATH_TO_REPOSITORY/run.py OPTIONS`
+1.  **Clone the repository:**
+    ```bash
+    git clone https://github.com/blackducksoftware/bd_kernel_vulns.git
+    cd bd_kernel_vulns
+    ```
+2.  **Ensure prerequisite packages are installed:**
+    The required packages are listed in `pyproject.toml`. You can install them using:
+    ```bash
+    pip3 install -r requirements.txt
+    ```
+    (It's highly recommended to do this within a [virtual environment](https://www.google.com/search?q=%23recommended-install-via-pip)).
 
-The utility can also be called from another python program as follows:
+## Prerequisites
 
-        from bd_kernel_vulns import main as bdkv_main
-        bdkv_main.process_kernel_vulns(blackduck_url=BDURL, 
-                                       blackduck_api_token=APITOKEN
-                                       kernel_source_file=KFILE, project=BDPROJECT,
-                                       version=BDPROJECT, logger=LOGGING,
-                                       blackduck_trust_cert=True,
-                                       remediation_status='NOT_AFFECTED',
-                                       remediation_justification='NO_CODE',
-                                       source_file_names_only=False
+Before running this utility, ensure you have:
 
-where values can be specified as required. Note the parameters logger, blackduck_trust_cert, remediation_status, remediation_justification,
-and source_file_name_only are optional.
+1.  **Black Duck SCA server 2024.1 or newer.**
+2.  **Black Duck SCA API Access:** A user account with either `Global Project Manager` roles or `Project BOM Manager` roles for the target project.
+3.  **Python 3.10 or newer.**
 
-## COMMAND LINE OPTIONS
+## How to Run
 
-      usage: bd-kernel-vulns [-h] [--blackduck_url BLACKDUCK_URL] [--blackduck_api_token BLACKDUCK_API_TOKEN] [--blackduck_trust_cert] [-p PROJECT] [-v VERSION] <OTHER OPTIONS>
+### As an Installed Package
 
-      Mark kernel vulns which are not within a custom kernel as remediated   
-      
-     -h, --help            show this help message and exit
+1.  **Activate your virtual environment** where the utility was installed (if you created one).
+2.  **Run the utility:**
+    ```bash
+    bd-kernel-vulns [OPTIONS]
+    ```
 
-    REQUIRED:
-     --blackduck_url BLACKDUCK_URL
-            Black Duck server URL (REQUIRED - will also use BLACKDUCK_URL env var)
-     --blackduck_api_token BLACKDUCK_API_TOKEN
-            Black Duck API token (REQUIRED - will also use BLACKDUCK_API_TOKEN env var)
-     -p PROJECT, --project PROJECT 
-            Black Duck project to create (REQUIRED)
-     -v VERSION, --version VERSION
-            Black Duck project version to create (REQUIRED)
-    -k KERNEL_SOURCE_FILE, --kernel_source_file KERNEL_SOURCE_FILE
-            File containing list of source files (or folders) within the kernel (one per line).
+### From a Cloned Repository
 
-    OPTIONAL:
-     --blackduck_trust_cert
-            Black Duck trust server cert (can use BLACKDUCK_TRUST_CERT env var)
-     --folders
-            Supplied list is kernel source folders (not source files)
-     --kernel_comp_name
-            Alternate kernel component name (default 'Linux Kernel')
-     --remediation_status
-            Vulnerability Remediation Status to apply - Default NOT_AFFECTED
-            (Options REMEDIATION_COMPLETE, NOT_AFFECTED, MITIGATED, DUPLICATE, IGNORED, 
-            PATCHED, NEW, UNDER_INVESTIGATION, NEEDS_REVIEW, AFFECTED, REMEDIATION_REQUIRED)  
-     --remediation_justification
-            Vulnerability Remediation Justification - Default NO_CODE
-            (Options NO_COMPONENT, NO_CODE, NOT_CONTROLLED, NOT_EXECUTED,
-            ALREADY_MITIGATED, MITIGATION, NO_FIX_PLANNED,
-            NONE_AVAILABLE, VENDOR_FIX, WORKAROUND - only applied if NOT_AFFECTED 
-            or AFFECTED selected for remediation status
-     --source_file_names_only
-            Match only source file names from vulnerabilities against the supplied source file list
-            (default is to match full folder names for example 'scripts/mod/file2alias.c' - use with caution
-            as can match vulnerabilities by the same kernel source name in different modules)
+1.  **Activate your virtual environment** where dependency packages were installed (if you created one).
+2.  **Run the utility:**
+    ```bash
+    python3 PATH_TO_REPOSITORY/run.py [OPTIONS]
+    ```
+    (Replace `PATH_TO_REPOSITORY` with the actual path to your cloned `bd_kernel_vulns` directory).
 
-## REMEDIATION STATUS
-The utility applies the default remediation status NOT_AFFECTED (with justification NO_CODE) which is a new 
-remediation status available since 2025.1.0. The script identifies the Black Duck server version and modifies the 
-remediation status to 'IGNORED' for versions prior to 2025.1.0 automatically.
+### As a Python Function
 
-## KERNEL SOURCE FILES
+You can also integrate this utility into another Python program:
 
-The utility requires a list of kernel source files in a supplied file.
-The source file list should include the path of each source file ending in the correct extension
-for example 'scripts/mod/file2alias.c'.  Folder separators should use forward slash '/'.
-Use the option `--source_file_names_only` to only match the source file name ignoring folders.
+```python
+from bd_kernel_vulns import main as bdkv_main
 
-## KERNEL SOURCE FOLDERS
+bdkv_main.process_kernel_vulns(
+    blackduck_url="YOUR_BLACKDUCK_URL",
+    blackduck_api_token="YOUR_API_TOKEN",
+    kernel_source_file="PATH_TO_KERNEL_SOURCE_LIST.txt",
+    project="YOUR_BLACKDUCK_PROJECT_NAME",
+    version="YOUR_BLACKDUCK_PROJECT_VERSION_NAME",
+    # Optional parameters:
+    logger=None, # e.g., logging.getLogger(__name__)
+    blackduck_trust_cert=True,
+    remediation_status='NOT_AFFECTED',
+    remediation_justification='NO_CODE',
+    source_file_names_only=False
+)
+```
 
-If the `--folders` option is specified, then a list of kernel source file folders is expected in the kernel_source_file, and
-kernel source files referenced in vulnerabilities will be matched based on the folders where they exist only.
-For example the file 'scripts/mod/file2alias.c' will match the folder 'scripts', 'mod' or 'scripts/mod'.
-Leading and trailing '/' separators are not required.
+## Command Line Arguments
 
-## OBTAINING KERNEL SOURCE FILES
+```
+usage: bd-kernel-vulns [-h] [--blackduck_url BLACKDUCK_URL] [--blackduck_api_token BLACKDUCK_API_TOKEN]
+                       [--blackduck_trust_cert] -p PROJECT -v VERSION -k KERNEL_SOURCE_FILE
+                       [--folders] [--kernel_comp_name KERNEL_COMP_NAME]
+                       [--remediation_status {REMEDIATION_COMPLETE,NOT_AFFECTED,MITIGATED,DUPLICATE,IGNORED,PATCHED,NEW,UNDER_INVESTIGATION,NEEDS_REVIEW,AFFECTED,REMEDIATION_REQUIRED}]
+                       [--remediation_justification {NO_COMPONENT,NO_CODE,NOT_CONTROLLED,NOT_EXECUTED,ALREADY_MITIGATED,MITIGATION,NO_FIX_PLANNED,NONE_AVAILABLE,VENDOR_FIX,WORKAROUND}]
+                       [--source_file_names_only]
 
-### FROM RUNNING LINUX IMAGE
+Mark kernel vulnerabilities not within a custom kernel as remediated.
 
-The `lsmod` and `modinfo` commands can be used to report the compiled objects in the running kernel.
+optional arguments:
+  -h, --help            show this help message and exit
 
-An example bash script to produce the list of kernel source files is shown below:
+REQUIRED arguments:
+  --blackduck_url BLACKDUCK_URL
+                        Black Duck server URL (REQUIRED, can also use BLACKDUCK_URL env var)
+  --blackduck_api_token BLACKDUCK_API_TOKEN
+                        Black Duck API token (REQUIRED, can also use BLACKDUCK_API_TOKEN env var)
+  -p PROJECT, --project PROJECT
+                        Black Duck project name (REQUIRED)
+  -v VERSION, --version VERSION
+                        Black Duck project version name (REQUIRED)
+  -k KERNEL_SOURCE_FILE, --kernel_source_file KERNEL_SOURCE_FILE
+                        Path to a file containing a list of source files (or folders) within your kernel, one per line.
 
-    lsmod | while read module otherfields
-    do
-        modinfo $module | grep '^filename:' | sed -e 's/filename:  *//g' -e 's/\.ko\.zst//g'
-    done > kfiles.lst
+OPTIONAL arguments:
+  --blackduck_trust_cert
+                        Trust the Black Duck server certificate without validation (can use BLACKDUCK_TRUST_CERT env var)
+  --folders             Treat the supplied list in --kernel_source_file as kernel source folders (default is source files).
+  --kernel_comp_name KERNEL_COMP_NAME
+                        Alternate name for the kernel component (default: 'Linux Kernel').
+  --remediation_status {REMEDIATION_COMPLETE,NOT_AFFECTED,MITIGATED,DUPLICATE,IGNORED,PATCHED,NEW,UNDER_INVESTIGATION,NEEDS_REVIEW,AFFECTED,REMEDIATION_REQUIRED}
+                        Vulnerability Remediation Status to apply (Default: NOT_AFFECTED).
+  --remediation_justification {NO_COMPONENT,NO_CODE,NOT_CONTROLLED,NOT_EXECUTED,ALREADY_MITIGATED,MITIGATION,NO_FIX_PLANNED,NONE_AVAILABLE,VENDOR_FIX,WORKAROUND}
+                        Vulnerability Remediation Justification (Default: NO_CODE). Only applied if remediation_status
+                        is 'NOT_AFFECTED' or 'AFFECTED'.
+  --source_file_names_only
+                        Match only source file names from vulnerabilities against the supplied list, ignoring folder paths.
+                        (Default is to match full folder paths, e.g., 'scripts/mod/file2alias.c'. Use with caution
+                        as this can lead to incorrect matches if files with the same name exist in different modules).
+```
 
-### FROM YOCTO BUILD
+## Remediation Status Logic
 
-The [bd_scan_yocto_via_sbom](https://github.com/blackducksoftware/bd_scan_yocto_via_sbom) utility is recommended to 
-scan Yocto projects, and the `--process_kernel_vulns` option will call this utility to filter kernel vulnerabilities.
+The utility automatically applies the default remediation status `NOT_AFFECTED` (with justification `NO_CODE`). However, if the connected Black Duck server version is **prior to 2025.1.0**, the script will automatically change the remediation status to `IGNORED` because `NOT_AFFECTED` is not available in older versions.
 
-However, if you want to use this utility directly on a Yocto project then processing the module image archive can 
-generate the list of compiled source files as follows:
+## Defining Kernel Source Files and Folders
 
-1. Locate the modules image archive file for the specific build (usually beneath the poky/build/tmp/deploy/images folder - for example `modules--6.12.31+git0+f2f3b6cbd9_fee8195f84-r0-qemux86-64-20250608200614.tgz`)
-2. Extract the list of modules from the file using `tar tf FILE | grep '.ko$' | sed -e 's/\.ko$/.c/g' > kfiles.lst`
+The `--kernel_source_file` argument requires a text file where each line specifies a kernel source file or folder.
 
-### FROM BUILDROOT BUILD
+  * **For Source Files (default behavior):**
 
-1. Locate the Kernel Build Directory - for example _<buildroot_root_directory>/output/build/linux-<kernel_version>/_
-2. Identify Compiled Object Files (.o files) by running `find <buildroot_root_directory>/output/build/linux-<kernel_version>/ -name "*.o" | sed -e 's/\.o$/.c/g' > kfiles.lst`
+      * Each line should include the full path of the source file, ending with the correct extension (e.g., `scripts/mod/file2alias.c`).
+      * Use forward slashes (`/`) as folder separators.
+      * Use the `--source_file_names_only` option to match only the base file name, ignoring the full path. **Use this option with caution**, as it can lead to false positives if different kernel modules contain files with the same name.
+
+  * **For Source Folders (`--folders` option):**
+
+      * Each line should contain a kernel source folder (e.g., `scripts`, `mod`, or `scripts/mod`).
+      * Leading and trailing `/` separators are not required.
+      * A vulnerability referencing a file like `scripts/mod/file2alias.c` will match against the folders `scripts`, `mod`, or `scripts/mod` if they are in your supplied list.
+
+## Obtaining Kernel Source File Lists
+
+Here are methods to generate the `kernel_source_file` list for your specific kernel build:
+
+### From a Running Linux Image
+
+You can use `lsmod` and `modinfo` to report compiled objects in your running kernel:
+
+```bash
+lsmod | while read module otherfields
+do
+    modinfo $module | grep '^filename:' | sed -e 's/filename:  *//g' -e 's/\.ko\.zst//g'
+done > kfiles.lst
+```
+
+### From a Yocto Build
+
+The [bd\_scan\_yocto\_via\_sbom](https://github.com/blackducksoftware/bd_scan_yocto_via_sbom) utility is the recommended way to scan Yocto projects. Its `--process_kernel_vulns` option directly calls this utility to filter kernel vulnerabilities.
+
+If you prefer to use `bd_kernel_vulns` directly on a Yocto project:
+
+1.  **Locate the modules image archive file** for your specific build (usually under `poky/build/tmp/deploy/images/`).
+      * Example filename: `modules--6.12.31+git0+f2f3b6cbd9_fee8195f84-r0-qemux86-64-20250608200614.tgz`
+2.  **Extract the list of modules** from the archive:
+    ```bash
+    tar tf YOUR_MODULES_ARCHIVE_FILE.tgz | grep '.ko$' | sed -e 's/\.ko$/.c/g' > kfiles.lst
+    ```
+
+### From a Buildroot Build
+
+1.  **Locate the Kernel Build Directory:**
+      * Example: `<buildroot_root_directory>/output/build/linux-<kernel_version>/`
+2.  **Identify Compiled Object Files (`.o` files):**
+    ```bash
+    find <buildroot_root_directory>/output/build/linux-<kernel_version>/ -name "*.o" | sed -e 's/\.o$/.c/g' > kfiles.lst
+    ```
