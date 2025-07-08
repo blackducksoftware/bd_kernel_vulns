@@ -2,7 +2,6 @@ import argparse
 import logging
 import os
 
-
 class Config:
     def __init__(self):
         self.bd_api = ''
