@@ -25,10 +25,6 @@ class BOM:
                 timeout=60
             )
 
-            if not self.check_bd_version(conf) and conf.remediation_status == 'NOT_AFFECTED':
-                conf.logger.info("BD server version is earlier than 2025.1.0 - will use supported remediation status IGNORE")
-                conf.remediation_status = 'IGNORE'
-
             conf.logger.info(f"Working on project '{conf.bd_project}' version '{conf.bd_version}'")
 
             self.bdver_dict = self.get_project(conf)

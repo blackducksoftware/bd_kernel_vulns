@@ -8,6 +8,8 @@ import logging
 
 # logger = config.setup_logger('kernel-vulns')
 
+program_version = 'v1.0.6'
+
 
 def main():
     conf = Config()
@@ -47,7 +49,18 @@ def process_kernel_vulns(blackduck_url, blackduck_api_token, kernel_source_file,
 
 
 def process(conf):
+    conf.logger.info(f"------------------------------------------------------------------------")
+    conf.logger.info(f"Running bd-kernel-vulns - version {program_version}")
+    conf.logger.info(f"------------------------------------------------------------------------")
+
     bom = BOM(conf)
+    if not bom:
+        conf.logger.info("Unable to connect to BD server - terminating")
+
+    if not bom.check_bd_version(conf) and conf.remediation_status == 'NOT_AFFECTED':
+        conf.logger.info("BD server version is earlier than 2025.1.0 - will use supported remediation status IGNORE")
+        conf.remediation_status = 'IGNORE'
+
     bom.get_comps(conf)
     count = bom.count_kernel_comps(conf)
     if count == 0:

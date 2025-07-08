@@ -1,5 +1,5 @@
 
-# Black Duck SCA Kernel Vulnerability Processor - `bd_kernel_vulns.py` v1.0.5
+# Black Duck SCA Kernel Vulnerability Processor - `bd_kernel_vulns.py` v1.0.6
 
 ## Project Status and Support
 
