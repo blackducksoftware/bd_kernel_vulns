@@ -193,7 +193,7 @@ You can use `lsmod` and `modinfo` to report compiled objects in your running ker
 ```bash
 lsmod | while read module otherfields
 do
-    modinfo $module | grep '^filename:' | sed -e 's/filename:  *//g' -e 's/\.ko\.zst//g'
+    modinfo $module | grep '^filename:' | sed -e 's/filename:  *//g' -e 's/\.ko\.zst/.c/g'
 done > kfiles.lst
 ```
 
