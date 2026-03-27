@@ -1,5 +1,5 @@
 
-# Black Duck SCA Kernel Vulnerability Processor - `bd_kernel_vulns.py` v1.0.6
+# Black Duck SCA Kernel Vulnerability Processor - `bd_kernel_vulns.py` v1.1.0
 
 ## Project Status and Support
 
@@ -118,11 +118,20 @@ bdkv_main.process_kernel_vulns(
 )
 ```
 
+## Interactive UI Mode
+
+If `--project`, `--version`, or `--kernel_source_file` are omitted from the command line, a graphical dialog will be shown to collect the missing values before processing begins. This requires a desktop environment and the `PyQt6` package.
+
+- **Project / Version selector** — shown when `-p` / `-v` are not supplied. Lists all projects on the server; selecting a project loads its versions. A filter box is available for both lists.
+- **Kernel source file selector** — shown when `-k` is not supplied. Opens a standard file-browser dialog to choose the kernel source list file.
+
+All dialogs can be cancelled to abort the run without error.
+
 ## Command Line Arguments
 
 ```
 usage: bd-kernel-vulns [-h] [--blackduck_url BLACKDUCK_URL] [--blackduck_api_token BLACKDUCK_API_TOKEN]
-                       [--blackduck_trust_cert] -p PROJECT -v VERSION -k KERNEL_SOURCE_FILE
+                       [--blackduck_trust_cert] [-p PROJECT] [-v VERSION] [-k KERNEL_SOURCE_FILE]
                        [--folders] [--kernel_comp_name KERNEL_COMP_NAME]
                        [--remediation_status {REMEDIATION_COMPLETE,NOT_AFFECTED,MITIGATED,DUPLICATE,IGNORED,PATCHED,NEW,UNDER_INVESTIGATION,NEEDS_REVIEW,AFFECTED,REMEDIATION_REQUIRED}]
                        [--remediation_justification {NO_COMPONENT,NO_CODE,NOT_CONTROLLED,NOT_EXECUTED,ALREADY_MITIGATED,MITIGATION,NO_FIX_PLANNED,NONE_AVAILABLE,VENDOR_FIX,WORKAROUND}]
@@ -138,12 +147,15 @@ REQUIRED arguments:
                         Black Duck server URL (REQUIRED, can also use BLACKDUCK_URL env var)
   --blackduck_api_token BLACKDUCK_API_TOKEN
                         Black Duck API token (REQUIRED, can also use BLACKDUCK_API_TOKEN env var)
+
+OPTIONAL arguments (UI dialog shown if omitted):
   -p PROJECT, --project PROJECT
-                        Black Duck project name (REQUIRED)
+                        Black Duck project name. If omitted, a project/version selector dialog is shown.
   -v VERSION, --version VERSION
-                        Black Duck project version name (REQUIRED)
+                        Black Duck project version name. If omitted, a project/version selector dialog is shown.
   -k KERNEL_SOURCE_FILE, --kernel_source_file KERNEL_SOURCE_FILE
                         Path to a file containing a list of source files (or folders) within your kernel, one per line.
+                        If omitted, a file browser dialog is shown.
 
 OPTIONAL arguments:
   --blackduck_trust_cert
@@ -160,6 +172,8 @@ OPTIONAL arguments:
                         Match only source file names from vulnerabilities against the supplied list, ignoring folder paths.
                         (Default is to match full folder paths, e.g., 'scripts/mod/file2alias.c'. Use with caution
                         as this can lead to incorrect matches if files with the same name exist in different modules).
+  --debug               Enable debug logging output.
+  --logfile LOGFILE     Write log output to the specified file.
 ```
 
 ## Remediation Status Logic

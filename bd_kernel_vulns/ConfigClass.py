@@ -2,11 +2,15 @@ import argparse
 import logging
 import os
 
+from blackduck import Client
+
+
 class Config:
     def __init__(self):
         self.bd_api = ''
         self.bd_url = ''
         self.bd_trustcert = False
+        self.bd = None
 
         self.bd_project = ''
         self.bd_version = ''
@@ -77,12 +81,8 @@ class Config:
             self.logger.error("Black Duck URL not specified")
             terminate = True
     
-        if args.project != "" and args.version != "":
-            self.bd_project = args.project
-            self.bd_version = args.version
-        else:
-            self.logger.error("Black Duck project/version not specified")
-            terminate = True
+        self.bd_project = args.project
+        self.bd_version = args.version
     
         api = os.environ.get('BLACKDUCK_API_TOKEN')
         if args.blackduck_api_token != '':
@@ -103,9 +103,6 @@ class Config:
                 terminate = True
             else:
                 self.kernel_source_file = args.kernel_source_file
-        else:
-            self.logger.error(f"Kernel source list file required (--kernel_source_list)")
-            terminate = True
 
         self.folders = args.folders
         self.kernel_comp_name = args.kernel_comp_name
@@ -120,6 +117,14 @@ class Config:
         if terminate:
             return False
         return True
+
+    def connect(self):
+        self.bd = Client(
+            token=self.bd_api,
+            base_url=self.bd_url,
+            verify=(not self.bd_trustcert),
+            timeout=60,
+        )
 
     def setup_logger(self, name: str, level) -> logging.Logger:
         logger = logging.getLogger(name)

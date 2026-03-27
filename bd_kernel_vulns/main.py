@@ -3,18 +3,34 @@ from .BOMClass import BOM
 # from . import config
 from .KernelSourceClass import KernelSource
 from .ConfigClass import Config
+from .UIClass import KernelSourceDialog, ProjectVersionDialog
 import sys
 import logging
 
 # logger = config.setup_logger('kernel-vulns')
 
-program_version = 'v1.0.6'
+program_version = 'v1.1.0'
 
 
 def main():
     conf = Config()
     if not conf.get_cli_args():
         sys.exit(1)
+
+    conf.connect()
+
+    if not conf.bd_project or not conf.bd_version:
+        dlg = ProjectVersionDialog(conf.bd, conf.bd_project)
+        if dlg.exec() != 1:
+            sys.exit(0)
+        conf.bd_project = dlg.selected_project or conf.bd_project
+        conf.bd_version = dlg.selected_version
+
+    if not conf.kernel_source_file:
+        dlg = KernelSourceDialog()
+        if dlg.exec() != 1:
+            sys.exit(0)
+        conf.kernel_source_file = dlg.selected_file
 
     process(conf)
     # config.check_args(args)
@@ -43,6 +59,7 @@ def process_kernel_vulns(blackduck_url, blackduck_api_token, kernel_source_file,
     conf.remediation_justification = remediation_justification
     conf.source_file_names_only = source_file_names_only
 
+    conf.connect()
     process(conf)
 
     return
