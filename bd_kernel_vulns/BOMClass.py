@@ -4,7 +4,6 @@ from .ComponentClass import Component
 from .VulnListClass import VulnList
 # from . import global_values
 # import logging
-from blackduck import Client
 import sys
 # from tabulate import tabulate
 # import aiohttp
@@ -18,12 +17,7 @@ class BOM:
         try:
             self.complist = ComponentList()
             self.vulnlist = VulnList()
-            self.bd = Client(
-                token=conf.bd_api,
-                base_url=conf.bd_url,
-                verify=(not conf.bd_trustcert),  # TLS certificate verification
-                timeout=60
-            )
+            self.bd = conf.bd
 
             conf.logger.info(f"Working on project '{conf.bd_project}' version '{conf.bd_version}'")
 
