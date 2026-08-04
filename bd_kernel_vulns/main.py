@@ -1,13 +1,8 @@
-# from . import global_values
 from .BOMClass import BOM
-# from . import config
 from .KernelSourceClass import KernelSource
 from .ConfigClass import Config
-from .UIClass import KernelSourceDialog, ProjectVersionDialog
 import sys
 import logging
-
-# logger = config.setup_logger('kernel-vulns')
 
 program_version = 'v1.1.0'
 
@@ -20,21 +15,15 @@ def main():
     conf.connect()
 
     if not conf.bd_project or not conf.bd_version:
-        dlg = ProjectVersionDialog(conf.bd, conf.bd_project)
-        if dlg.exec() != 1:
-            sys.exit(0)
-        conf.bd_project = dlg.selected_project or conf.bd_project
-        conf.bd_version = dlg.selected_version
+        conf.logger.error("Project (--project) and version (--version) are required")
+        sys.exit(1)
 
     if not conf.kernel_source_file:
-        dlg = KernelSourceDialog()
-        if dlg.exec() != 1:
-            sys.exit(0)
-        conf.kernel_source_file = dlg.selected_file
+        conf.logger.error("Kernel source file (--kernel_source_file) is required")
+        sys.exit(1)
 
     process(conf)
-    # config.check_args(args)
-    
+
     sys.exit(0)
 
 
