@@ -1,5 +1,5 @@
 
-# Black Duck SCA Kernel Vulnerability Processor - `bd_kernel_vulns.py` v1.1.0
+# Black Duck SCA Kernel Vulnerability Processor - `bd_kernel_vulns.py` v1.1.1
 
 ## Project Status and Support
 
@@ -232,3 +232,7 @@ If you prefer to use `bd_kernel_vulns` directly on a Yocto project:
     ```bash
     find <buildroot_root_directory>/output/build/linux-<kernel_version>/ -name "*.o" | sed -e 's/\.o$/.c/g' > kfiles.lst
     ```
+
+## Release History
+
+- v1.1.1: Removed UI components and requirement for QT due to requests to support pipeline execution.
