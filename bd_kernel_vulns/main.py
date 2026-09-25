@@ -6,7 +6,7 @@ import logging
 
 # logger = config.setup_logger('kernel-vulns')
 
-program_version = 'v1.1.3'
+program_version = 'v1.1.4'
 
 
 def main():
