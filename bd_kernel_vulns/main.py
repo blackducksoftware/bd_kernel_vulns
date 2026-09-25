@@ -4,7 +4,9 @@ from .ConfigClass import Config
 import sys
 import logging
 
-program_version = 'v1.1.0'
+# logger = config.setup_logger('kernel-vulns')
+
+program_version = 'v1.1.3'
 
 
 def main():
