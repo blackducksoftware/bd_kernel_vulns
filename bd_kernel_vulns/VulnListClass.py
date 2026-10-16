@@ -187,19 +187,6 @@ class VulnList:
 
         return vuln_data
 
-    async def async_ignore_vulns(self, bd, conf):
-        token = bd.session.auth.bearer_token
-
-        async with aiohttp.ClientSession(trust_env=True) as session:
-            vuln_tasks = []
-            for vuln in self.vulnlist_direct.values():
-                if vuln.is_ignored() or vuln.in_kernel:
-                    continue
-
-                vuln_task = asyncio.ensure_future(vuln.async_ignore_vuln(conf, session, token))
-                vuln_tasks.append(vuln_task)
-
-            vuln_data = dict(await asyncio.gather(*vuln_tasks))
-            await asyncio.sleep(0.250)
-
-        return vuln_data
+    def remediation_relations(self, bd):
+        return [vuln.remediation_relation(bd) for vuln in self.vulnlist_direct.values()
+                if not vuln.is_ignored() and not vuln.in_kernel]

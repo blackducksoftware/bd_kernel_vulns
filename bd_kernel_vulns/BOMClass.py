@@ -8,6 +8,7 @@ import sys
 # from tabulate import tabulate
 # import aiohttp
 import asyncio
+import datetime
 import platform
 # import re
 
@@ -153,12 +154,25 @@ class BOM:
 
         self.vulnlist.add_associatedvuln_data(asyncio.run(self.vulnlist.async_get_associatedvuln_data(self.bd, conf)), conf)
 
-    def ignore_vulns_async(self, conf):
-        if platform.system() == "Windows":
-            asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+    def ignore_vulns_bulk(self, conf):
+        relations = self.vulnlist.remediation_relations(self.bd)
+        if not relations:
+            return 0
 
-        data = asyncio.run(self.vulnlist.async_ignore_vulns(self.bd, conf))
-        return len(data)
+        mydate = datetime.datetime.now().strftime("%x %X")
+        payload = {
+            'remediationStatus': conf.remediation_status,
+            'comment': (f"Remediated by bd-kernel-vulns utility {mydate} - "
+                        f"vulnerabilities refer to source files reported not included in kernel"),
+            'componentVulnerabilityRelations': relations,
+        }
+        if conf.remediation_status in ["AFFECTED", "NOT_AFFECTED"]:
+            payload['remediationJustification'] = conf.remediation_justification
+
+        headers = {'Content-Type': 'application/vnd.blackducksoftware.bill-of-materials-8+json'}
+        r = self.bd.session.put(f"{self.projver}/vulnerabilities", headers=headers, json=payload)
+        r.raise_for_status()
+        return len(relations)
 
     # def ignore_vulns(self, conf):  # DEBUG
     #     self.vulnlist.ignore_vulns(self.bd, conf)

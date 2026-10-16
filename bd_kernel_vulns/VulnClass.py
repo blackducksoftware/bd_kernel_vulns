@@ -1,7 +1,6 @@
 # from . import global_values
 # import config
 import re
-import datetime
 # import json
 
 
@@ -244,31 +243,9 @@ class Vuln:
 
         return self.get_id(), result_data
 
-    async def async_ignore_vuln(self, conf, session, token):
-        if conf.bd_trustcert:
-            ssl = False
-        else:
-            ssl = None
-
-        headers = {
-            # 'accept': "application/vnd.blackducksoftware.bill-of-materials-6+json",
-            'Authorization': f'Bearer {token}',
-        }
-        # resp = globals.bd.get_json(thishref, headers=headers)
-        x = datetime.datetime.now()
-        mydate = x.strftime("%x %X")
-
-        payload = self.comp_vuln_data
-        # payload['remediationJustification'] = "NO_CODE"
-        payload['comment'] = (f"Remediated by bd-kernel-vulns utility {mydate} - "
-                              f"vuln refers to source files {self.sourcefiles} reported not included in kernel")
-        payload['remediationStatus'] = conf.remediation_status
-        if conf.remediation_status in ["AFFECTED", "NOT_AFFECTED"]:
-            payload['remediationJustification'] = conf.remediation_justification
-
-        conf.logger.debug(f"{self.id} - {self.url()}")
-        async with session.put(self.url(), headers=headers, json=payload, ssl=ssl) as response:
-            res = response.status
-
-        # print(res)
-        return self.get_id(), res
+    def remediation_relation(self, bd):
+        relation = {'vulnerability': self.vuln_url(bd)}
+        linked_cve = self.get_linked_cve()
+        if linked_cve:
+            relation['relatedVulnerability'] = f"{bd.base_url}/api/vulnerabilities/{linked_cve}"
+        return relation

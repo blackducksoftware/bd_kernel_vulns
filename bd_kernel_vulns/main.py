@@ -6,7 +6,7 @@ import logging
 
 # logger = config.setup_logger('kernel-vulns')
 
-program_version = 'v1.1.4'
+program_version = 'v1.1.5'
 
 
 def main():
@@ -100,7 +100,7 @@ def process(conf):
                      f"({bom.count_in_kernel_vulns()} in-scope kernel vulns - not modified)")
 
     conf.logger.info(f"- Applied remediation status {conf.remediation_status} to "
-                     f"{bom.ignore_vulns_async(conf)} kernel vulns")
+                     f"{bom.ignore_vulns_bulk(conf)} kernel vulns")
     # bom.ignore_vulns()
     conf.logger.info("Done")
 
