@@ -1,5 +1,5 @@
 
-# Black Duck SCA Kernel Vulnerability Processor - `bd_kernel_vulns.py` v1.1.4
+# Black Duck SCA Kernel Vulnerability Processor - `bd_kernel_vulns.py` v1.1.5
 
 ## Project Status and Support
 
@@ -228,4 +228,16 @@ If you prefer to use `bd_kernel_vulns` directly on a Yocto project:
 
 ## Release History
 
-- v1.1.1: Removed UI components and requirement for QT due to requests to support pipeline execution.
+* **v1.1.5** - Vulnerability remediation now uses a single bulk request to the project version `vulnerabilities` endpoint instead of one request per vulnerability. The request carries a batch comment recording the run date.
+* **v1.1.4** - Removed spurious PyQt dependency.
+* **v1.1.3** - Dependency update.
+* **v1.1.2** - Updated dependencies.
+* **v1.1.1** - Removed the interactive UI and Qt dependencies.
+* **v1.1.0** - Added optional UI to select project/version and kernel source list file.
+* **v1.0.6** - Fixed check of Black Duck server version.
+* **v1.0.5** - README update; added parameters for direct package invocation.
+* **v1.0.4** - Added new options and other fixes.
+* **v1.0.3** - Minor fix to `main.py`.
+* **v1.0.2** - README and minor fixes.
+* **v1.0.1** - Minor fixes; added kernel source file check.
+* **v1.0** - Initial parameterized, operating release.
