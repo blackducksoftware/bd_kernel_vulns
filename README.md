@@ -210,11 +210,17 @@ The [bd\_scan\_yocto\_via\_sbom](https://github.com/blackducksoftware/bd_scan_yo
 
 If you prefer to use `bd_kernel_vulns` directly on a Yocto project:
 
-1.  **Locate the modules image archive file** for your specific build (usually under `poky/build/tmp/deploy/images/`).
-      * Example filename: `modules--6.12.31+git0+f2f3b6cbd9_fee8195f84-r0-qemux86-64-20250608200614.tgz`
-2.  **Extract the list of modules** from the archive:
+1.  **Locate the kernel build location:
     ```bash
-    tar tf YOUR_MODULES_ARCHIVE_FILE.tgz | grep '.ko$' | sed -e 's/\.ko$/.c/g' > kfiles.lst
+    bitbake -e virtual/kernel | grep '^B='
+    ```
+2.  **Extract the list of loadable modules**:
+    ```bash
+    find . -name '*.ko' | sed -e 's/\.ko/\.c/' -e 's/^\.\///' > kfiles.lst
+    ```
+3.  **Extract the list of loadable modules** (from the modules.builtin file) in kernel build location:
+    ```bash
+    cat modules.builtin | sed -e 's/\.ko/\.c/' -e 's/^\.\///' >> kfiles.lst
     ```
 
 ### From a Buildroot Build
