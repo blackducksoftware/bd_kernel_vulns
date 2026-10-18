@@ -210,7 +210,7 @@ The [bd\_scan\_yocto\_via\_sbom](https://github.com/blackducksoftware/bd_scan_yo
 
 If you prefer to use `bd_kernel_vulns` directly on a Yocto project:
 
-1.  **Locate the kernel build location:
+1.  **Locate the kernel build location**:
     ```bash
     bitbake -e virtual/kernel | grep '^B='
     ```
